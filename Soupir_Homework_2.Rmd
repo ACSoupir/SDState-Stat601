@@ -8,7 +8,9 @@ output:
     df_print: paged
 ---
 
-
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=F,warning=F,echo=F,fig_height=10,fig_width=7,cache = F)
+```
 
 *Packages*: HSAUR3, GGplot, gamair, MASS, ISLR
 
@@ -19,7 +21,22 @@ Please do the following problems from the text book R Handbook and stated.
 1. Collett (2003) argues that two outliers need to be removed from the \textbf{plasma} data. Try to identify those two unusual observations by means of a scatterplot. (7.2 on Handbook)
 + Statement: Find two outliers that are argued to be removed from the **plasma** df.
 
-![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-1-1.pdf)<!-- --> ![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-1-2.pdf)<!-- --> 
+```{r, echo=FALSE}
+#importing librar
+library(HSAUR3)
+
+plasma.df = plasma
+attach(plasma.df)
+
+#create plots
+plot(fibrinogen, globulin, col=c('red', 'blue')[ESR])
+legend(x='topright', legend=levels(plasma.df$ESR), col=c('red', 'blue'), pch=1)
+
+library(ggplot2)
+ggplot(plasma.df, aes(x=fibrinogen, y=globulin, col=ESR)) + geom_point(shape = 1)
+
+detach(plasma.df)
+```
 + **Discussion: The 2 observations that I think are the outliers by looking at the scatter plots from both *ggplot* and base R includes the observation with which fibrinogen is greater than 5 and fibrogen close to 4. These 2 points are located relatively by themselves whereas the observations that have globulin close to (and greater than) 45 have several observations at that level.**
     + **It's difficult to determine the outlier just by viewwing the data without a formal test that states emperically the bounds of an outlier, so the answer is mostly an educated guess based on the context of the plot.**
     + **I think it's important to note that the distribution of ESR < 20 has less variance than ESR > 20. Globulin is fairly evenly distributed with a few observations having higher levels in the blood, but the points are located too far away from the main body of the data. **
@@ -37,13 +54,39 @@ Tell me anything you think is important here.
 
     a) Fit a quadratic regression model, i.e.,a model of the form
 $$\text{Model 2:   } velocity = \beta_1 \times distance + \beta_2 \times distance^2 +\epsilon$$
+    ```{r, echo=FALSE}
+    #import library
+    library(gamair)
+    data(hubble)
+    hubble.df = hubble
     
+    #calculate the distance squared and add to hubble.df
+    model2 = lm(y ~ x + I(x^2), data = hubble.df)
+    model3 = lm(y ~ x, data = hubble.df)
+    
+    #organize the values to make base r graph look better
+    newdat = data.frame(x = seq(min(hubble.df$x), max(hubble.df$x), length.out = 100))
+    newdat$pred = predict(model2, newdata = newdat)
+    ```
 
     b) Plot the fitted curve from Model 2 on the scatterplot of the data
     
     c) Add the simple linear regression fit (fitted in class) on this plot - use different color and line type to differentiate the two and add a legend to your plot. 
     
-    ![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-3-1.pdf)<!-- --> ![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-3-2.pdf)<!-- --> 
+    ```{r, echo=FALSE}
+    #create plots in base r and ggplot for the quadratic regression and simple linear regression
+    plot(x = hubble.df$x, hubble$y)
+    abline(model3, col = 'red')
+    with(newdat, lines(x = x, y = pred))
+    legend("topleft", legend=c("simple", "quadratic"),
+           col=c("red", "black"), lty=1, cex=0.8)
+    
+    ggplot(hubble.df, aes(x=hubble.df$x, y=hubble.df$y)) + geom_point() + 
+      geom_line(data = fortify(model2), aes(x=hubble.df$x, y = .fitted, colour='blue'), show.legend = TRUE) + 
+      geom_line(data = fortify(model3), aes(x=hubble.df$x, y = .fitted, colour='red'), show.legend = TRUE) +
+      scale_color_discrete(name = "Model", labels = c("quad", "simple"))
+    
+    ```
     
     d) Which model do you consider most sensible considering the nature of the data - looking at the plot? 
     
@@ -52,13 +95,13 @@ $$\text{Model 2:   } velocity = \beta_1 \times distance + \beta_2 \times distanc
     e) Which model is better? - provide a statistic to support you claim.
     
     **The simple linear regression seems to perform slightly better than the quadratic regression model.**
+    ```{r, echo=FALSE}
+    #calculate mean squated error of the different models
+    MSE1 = mean((predict(model2, newdat, type = 'response') - hubble.df$x)^2)
+    cat('Quadratic regression MSE =     ', MSE1, '\n')
+    MSE2 = mean((predict(model3, newdat, type = 'response') - hubble.df$x)^2)
+    cat('Simple linear regression MSE = ', MSE2, '\n')
     
-    ```
-    ## Quadratic regression MSE =      1005787
-    ```
-    
-    ```
-    ## Simple linear regression MSE =  1020064
     ```
     
     Note: The quadratic model here is still regarded as a ``linear regression" model since the term ``linear" relates to the parameters of the model and not to the powers of the explanatory variables. 
@@ -67,25 +110,54 @@ $$\text{Model 2:   } velocity = \beta_1 \times distance + \beta_2 \times distanc
 
     a) Define a binary outcome variable according to whether or not patients lived for at least 24 weeks after diagnosis. Call it \textit{surv24}. 
 
+    ```{r, echo=FALSE}
+    #import library and create surv24 vector
+    library(MASS)
+    data(leuk, package = 'MASS')
+    leuk.df = leuk
     
+    surv24 = ifelse(leuk.df$time >= 24, 1, 0)
+    ```
     
     b) Fit a logistic regression model to the data with \textit{surv24} as response. It is advisable to transform the very large white blood counts to avoid regression coefficients very close to 0 (and odds ratio close to 1). You may use log transformation.
     
+    ```{r, echo=FALSE}
+    #calculate log of wbc and create a logistic regression without interaction
+    leuk.df$wbcLog = log10(leuk.df$wbc)
     
+    model.logistic = glm(surv24~wbcLog + ag, data = leuk.df, family=binomial())
+    ```
     
     c) Construct some graphics useful in the interpretation of the final model you fit. 
     
-    ![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-7-1.pdf)<!-- --> ![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-7-2.pdf)<!-- --> ![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-7-3.pdf)<!-- --> 
+    ```{r, echo=FALSE}
+    #following plot from example in GLM_CH7.R to create plot using base R
+    p = leuk.df$ag == 'present'
+    surviving.pred = predict(model.logistic, type = 'response')
+    plot(leuk.df$wbcLog, surv24, col=leuk.df$ag, ylab="Probability of surviving", xlab="log10(wbc)", ylim=c(0,1))
+    lines(leuk.df$wbcLog[!p], surviving.pred[!p], lty=1)
+    lines(leuk.df$wbcLog[p], surviving.pred[p], lty=2)
+    legend('topright', legend=c("absent", "present"), lty=1:2, bty='n')
+    #create same plot using ggplot
+    leuk.df = cbind(leuk.df, preds = surviving.pred)
+    ggplot(leuk.df, aes(x=leuk.df$wbcLog, y=surv24, colour=ag))+ geom_point()+
+      geom_line(data=leuk.df[leuk.df$ag =='present',], aes(x=wbcLog, y=preds), colour='blue')+
+      geom_line(data=leuk.df[leuk.df$ag == 'absent',], aes(x=wbcLog, y=preds), colour='red')+
+      scale_color_discrete(name = "Results")
+    #scatter plot between log wbc and time survived after diagnosis
+    ggplot(leuk.df, aes(x=time, y=wbcLog, colour=ag))+
+      geom_point()
+    ```
     
     d) Fit a model with an interaction term between the two predictors. Which model fits the data better? Justify your answer.
     
-    
-    ```
-    ## no interaction model MSE: 0.1864727
-    ```
-    
-    ```
-    ## interaction model MSE:    0.1712448
+    ```{r, echo=FALSE}
+    #create logistic regression with interaction and compare MSE to model without interaction
+    model.logistic2 = glm(surv24~wbcLog + ag + wbcLog * ag, data=leuk.df, family=binomial())
+    MSE3 = mean((predict(model.logistic, leuk.df, type='response') - surv24)^2)
+    cat('no interaction model MSE:', MSE3, '\n')
+    MSE4 = mean((predict(model.logistic2, leuk.df, type='response') - surv24)^2)
+    cat('interaction model MSE:   ', MSE4, '\n')
     ```
     
 **The interaction model has a lower MSE which is indicative of a better fit to the observations than the non-interaction model does. This means that the information together are better predictors of whether the patient will or will not survive past 24 weeks after diagnosis.**
@@ -98,135 +170,84 @@ $$\text{Model 2:   } velocity = \beta_1 \times distance + \beta_2 \times distanc
 
     a) Perform descriptive analysis on the dataset to have an insight. Use summaries and appropriate exploratory graphics to answer the question of interest.
     
-    
+    ```{r, echo=FALSE}
+    #import library
+    library(ISLR)
+    data("Default")
+    default.df = Default
+    ```
 
 **Summary Statistics**
 
-    
-    ```
-    ##  default   student      balance           income     
-    ##  No :  0   No :206   Min.   : 652.4   Min.   : 9664  
-    ##  Yes:333   Yes:127   1st Qu.:1511.6   1st Qu.:19028  
-    ##                      Median :1789.1   Median :31515  
-    ##                      Mean   :1747.8   Mean   :32089  
-    ##                      3rd Qu.:1988.9   3rd Qu.:43067  
-    ##                      Max.   :2654.3   Max.   :66466
-    ```
-    
-    ```
-    ##  default    student       balance           income     
-    ##  No :9667   No :6850   Min.   :   0.0   Min.   :  772  
-    ##  Yes:   0   Yes:2817   1st Qu.: 465.7   1st Qu.:21405  
-    ##                        Median : 802.9   Median :34589  
-    ##                        Mean   : 803.9   Mean   :33566  
-    ##                        3rd Qu.:1128.2   3rd Qu.:43824  
-    ##                        Max.   :2391.0   Max.   :73554
+    ```{r, echo=FALSE}
+    #summary statistics split by default column
+    summary(default.df[default.df$default=='Yes',])
+    summary(default.df[default.df$default=='No',])
     ```
     
 **Boxplots to show the difference in the balance and income of those that will default**
     
-![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-11-1.pdf)<!-- --> ![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-11-2.pdf)<!-- --> ![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-11-3.pdf)<!-- --> 
+```{r, echo=FALSE}
+#create plots compaing income and balance to whether they defaulted
+attach(default.df)
+par(mfrow = c(1,2))
+boxplot(balance~default)
+boxplot(income~default)
+ggplot(default.df, aes(x = default, y = balance))+ geom_boxplot()
+ggplot(default.df, aes(x = default, y = income))+ geom_boxplot()
+detach(default.df)
+```
     
     b) Use R to build a logistic regression model. 
     
-    
+    ```{r, echo=FALSE}
+    #create vector for whether or not they defaulted and create interaction model and non-interaction model
+    defs = ifelse(default.df$default == 'Yes', 1, 0)
+    defs.model = glm(defs~student + balance + income + student*balance + student*income + balance*income, data=default.df, family=binomial())
+    defs.model2 = glm(defs~student + balance + income, data=default.df, family=binomial())
+    ```
     
     c) Discuss your result. Which predictor variables were important? Are there interactions?
     
-    
-    ```
-    ## 
-    ## Call:
-    ## glm(formula = defs ~ student + balance + income + student * balance + 
-    ##     student * income + balance * income, family = binomial(), 
-    ##     data = default.df)
-    ## 
-    ## Deviance Residuals: 
-    ##     Min       1Q   Median       3Q      Max  
-    ## -2.4848  -0.1417  -0.0554  -0.0202   3.7579  
-    ## 
-    ## Coefficients:
-    ##                      Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)        -1.104e+01  1.866e+00  -5.914 3.33e-09 ***
-    ## studentYes         -5.201e-01  1.344e+00  -0.387    0.699    
-    ## balance             5.882e-03  1.180e-03   4.983 6.27e-07 ***
-    ## income              4.050e-06  4.459e-05   0.091    0.928    
-    ## studentYes:balance -2.551e-04  7.905e-04  -0.323    0.747    
-    ## studentYes:income   1.447e-05  2.779e-05   0.521    0.602    
-    ## balance:income     -1.579e-09  2.815e-08  -0.056    0.955    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for binomial family taken to be 1)
-    ## 
-    ##     Null deviance: 2920.6  on 9999  degrees of freedom
-    ## Residual deviance: 1571.1  on 9993  degrees of freedom
-    ## AIC: 1585.1
-    ## 
-    ## Number of Fisher Scoring iterations: 8
+    ```{r, echo=FALSE}
+    #summary of the interaction model
+    summary(defs.model)
     ```
     
 **Including the interaction term coefficients in the model show that the only significant term is the balance. None of the interaction coefficients are significantly different than zero and therefore are not associated (together) in whether or not they will default.**
     
-    
-    ```
-    ## 
-    ## Call:
-    ## glm(formula = defs ~ student + balance + income, family = binomial(), 
-    ##     data = default.df)
-    ## 
-    ## Deviance Residuals: 
-    ##     Min       1Q   Median       3Q      Max  
-    ## -2.4691  -0.1418  -0.0557  -0.0203   3.7383  
-    ## 
-    ## Coefficients:
-    ##               Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept) -1.087e+01  4.923e-01 -22.080  < 2e-16 ***
-    ## studentYes  -6.468e-01  2.363e-01  -2.738  0.00619 ** 
-    ## balance      5.737e-03  2.319e-04  24.738  < 2e-16 ***
-    ## income       3.033e-06  8.203e-06   0.370  0.71152    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for binomial family taken to be 1)
-    ## 
-    ##     Null deviance: 2920.6  on 9999  degrees of freedom
-    ## Residual deviance: 1571.5  on 9996  degrees of freedom
-    ## AIC: 1579.5
-    ## 
-    ## Number of Fisher Scoring iterations: 8
+    ```{r, echo=FALSE}
+    #summary of the non-interaction model
+    summary(defs.model2)
     ```
     
 **Removing the interaction terms in the model shows that balance is still a significant term. Whether or not the individual is a student is also significant in predicting whether the individual is going to default or not which is interesting. Balance is actually more significant in the model without interaction terms than it is with them.**
     
     d) How good is your model? Assess the performance of the logistic regression classifier. What is the error rate? 
     
-
-```
-## Logistic regression with interaction terms MSE =     0.02129659
-```
-
-```
-## Logistic regression without interaction terms MSE =  0.02129814
+```{r, echo=FALSE}
+#comparison of the MSE between the interaction model and the model without interaction
+MSE5 = mean((predict(defs.model, default.df, type = 'response') - defs)^2)
+cat('Logistic regression with interaction terms MSE =    ', MSE5, '\n')
+MSE6 = mean((predict(defs.model2, default.df, type = 'response') - defs)^2)
+cat('Logistic regression without interaction terms MSE = ', MSE6, '\n')
 ```
 
 **The MSE of the model with interaction coefficients is slightly lower than the MSE from the model without interactions. THey are almost identical, down to the 5th decimal place after which they are different. **
 
+```{r, echo=FALSE}
+#Confusion matrices to determine the accuracy of the logistic regression models
+defs1 = predict(defs.model, default.df, type = 'response')
+defs1 = ifelse(defs1 >= 0.5, 1, 0)
+table1 = table(defs1, defs)
+print('Accuracy of LRM with interaction: ')
+sum(diag(table1))/sum(table1)
 
-```
-## [1] "Accuracy of LRM with interaction: "
-```
-
-```
-## [1] 0.9731
-```
-
-```
-## [1] "Accuracy of LRM without interaction: "
-```
-
-```
-## [1] 0.9732
+defs2 = predict(defs.model2, default.df, type = 'response')
+defs2 = ifelse(defs2 >= 0.5, 1, 0)
+table2 = table(defs2, defs)
+print('Accuracy of LRM without interaction: ')
+sum(diag(table2))/sum(table2)
 ```
     
 **Looking at confusion matrices of the predictions with the true results, and the accuracy of both models is greater than 97%.  The model with interaction has a slightly lower accuracy (97.31% v 97.32%) but they are basically the same here too. It is interesting to note that the MSE of the model with interaction was lower than without and the accuracy was slightly better.**
@@ -235,116 +256,97 @@ $$\text{Model 2:   } velocity = \beta_1 \times distance + \beta_2 \times distanc
 
 Logistic Regression and Generalized Linear Models
 
-![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-17-1.pdf)<!-- --> 
+```{r, echo=FALSE}
+#creates density plot by frequency of ESR based on protein level
+data("plasma", package="HSAUR3")
+layout(matrix(1:2, ncol=2))
+cdplot(ESR ~ fibrinogen, data = plasma)
+cdplot(ESR ~ globulin, data = plasma)
+```
 
 **These are the distributions of fibinogen and globulin based on the ESR value being lower or higher than 20. The ESR changes greatly as fibinogen increases. The ESR distibution changes a decent amount as globulin increases, but the change is less than that of fibrinogen.**
-
-
-
-```
-##     2.5 %    97.5 % 
-## 0.3387619 3.9984921
+```{r, echo=FALSE}
+#logistic regression model for ESR based on fibrinogen
+plasma_glm_1 = glm(ESR ~ fibrinogen, data = plasma, family=binomial())
 ```
 
+```{r, echo=FALSE}
+#fibrinogen coefficient 95% confidence interval
+confint(plasma_glm_1, parm = "fibrinogen")
+``` 
 
-```
-## 
-## Call:
-## glm(formula = ESR ~ fibrinogen, family = binomial(), data = plasma)
-## 
-## Deviance Residuals: 
-##     Min       1Q   Median       3Q      Max  
-## -0.9298  -0.5399  -0.4382  -0.3356   2.4794  
-## 
-## Coefficients:
-##             Estimate Std. Error z value Pr(>|z|)  
-## (Intercept)  -6.8451     2.7703  -2.471   0.0135 *
-## fibrinogen    1.8271     0.9009   2.028   0.0425 *
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## (Dispersion parameter for binomial family taken to be 1)
-## 
-##     Null deviance: 30.885  on 31  degrees of freedom
-## Residual deviance: 24.840  on 30  degrees of freedom
-## AIC: 28.84
-## 
-## Number of Fisher Scoring iterations: 5
+```{r, echo=FALSE}
+#logistic regression summary
+summary(plasma_glm_1)
 ```
 
 **Creating a logistic regression model for ESR using fibrinogen shows that as fibrinogen increases, ESR also increases. The fibrinogen coefficient is significant with a p-value of 0.0425. The estimated coefficient is 1.827 and has a 95% confidence interval between 0.339 and 3.998.**
 
-
+```{r, echo=FALSE}
+#the edds of fibrinogen coefficnet
+exp(coef(plasma_glm_1)["fibrinogen"])
 ```
-## fibrinogen 
-##   6.215715
-```
 
-
-```
-##     2.5 %    97.5 % 
-##  1.403209 54.515884
+```{r, echo=FALSE}
+#conficent interval odds of fibrinogen
+exp(confint(plasma_glm_1, parm = "fibrinogen"))
 ```
 
 **These values are the exponents of the coefficient and confidence interval which are the odds themselves? This is the odds that the response variable, ESR, increases by 1 when fibinogen increases by 1 conditional on all other variables remaining constant (which are none in this case). The confidence interval is exceptionally large, possibly due to only 6 of the 32 data points having an ESR greater than 20.**
 
-
+```{r, echo=FALSE}
+#logistic regression for ESR using both fibrinogen and globulin as input variables
+plasma_glm_2 <- glm(ESR ~ fibrinogen + globulin, data = plasma, family = binomial())
+```
 
 **Creating a logistic regression model to predict ESR based in independent variables fibrinogen and globulin, without looking at any interactions.**
 
-
-```
-## 
-## Call:
-## glm(formula = ESR ~ fibrinogen + globulin, family = binomial(), 
-##     data = plasma)
-## 
-## Deviance Residuals: 
-##     Min       1Q   Median       3Q      Max  
-## -0.9683  -0.6122  -0.3458  -0.2116   2.2636  
-## 
-## Coefficients:
-##             Estimate Std. Error z value Pr(>|z|)  
-## (Intercept) -12.7921     5.7963  -2.207   0.0273 *
-## fibrinogen    1.9104     0.9710   1.967   0.0491 *
-## globulin      0.1558     0.1195   1.303   0.1925  
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## (Dispersion parameter for binomial family taken to be 1)
-## 
-##     Null deviance: 30.885  on 31  degrees of freedom
-## Residual deviance: 22.971  on 29  degrees of freedom
-## AIC: 28.971
-## 
-## Number of Fisher Scoring iterations: 5
+```{r, echo=FALSE}
+#summary of fibrinogen/globulin model
+summary(plasma_glm_2)
 ```
 
 **From the summary of the logistic regression created using both fibrinogen and globulin as input variables, shows that the fibrinogen term coefficient is significant just like the previous model using only fibrinogen as an input variable. The coefficient for globulin isn't significantly different than 0. **
 
-<div data-pagedtable="false">
-  <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Resid. Df"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["Resid. Dev"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Df"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["Deviance"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["Pr(>Chi)"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"30","2":"24.84036","3":"NA","4":"NA","5":"NA","_rn_":"1"},{"1":"29","2":"22.97111","3":"1","4":"1.869242","5":"0.1715619","_rn_":"2"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
-</div>
+```{r, echo=FALSE}
+#chi-squared test between the model without globulin and with globulin
+anova(plasma_glm_1, plasma_glm_2, test = "Chisq")
+```
 
 **Comparing the two different models, we can see that addinng the globulin term doesn't make the model significantly different from the model without it, and therefore can see that globulin doesn't really contribute to the ESR value.**
 
+```{r, echo=FALSE}
+#predictions from the model with globulin
+prob <- predict(plasma_glm_2, type = "response")
+```
 
-
-![](Soupir_Homework_2_files/figure-latex/unnamed-chunk-27-1.pdf)<!-- --> 
+```{r, echo=FALSE}
+#creating bubble plot of fibrinogen and globulin, with probability of the ESR being greater than 20 as the bubble size
+plot(globulin ~ fibrinogen, data = plasma, xlim = c(2, 6), ylim = c(25, 55), pch = ".")
+symbols(plasma$fibrinogen, plasma$globulin, circles = prob, add = TRUE)
+```
 
 **As seen with the chi-squared test and the second regression model, globulin doesn't contribute greatly to the ESR. Fibrinogen contributes a lot more to the ESR and the plot shows that as fibrinogen increases, the probability of ESR being greater than 20 increases drastically (larger circle indicates a greater probability of having an ESR greater than 20). **
 
+```{r, echo=FALSE}
 
+```
 
+```{r, echo=FALSE}
 
+```
 
+```{r, echo=FALSE}
 
+```
 
+```{r, echo=FALSE}
 
+```
 
+```{r, echo=FALSE}
 
+```
 
 
 
