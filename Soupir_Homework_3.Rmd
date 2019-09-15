@@ -1,0 +1,327 @@
+---
+title: "Homework 3"
+author: "Alex Soupir"
+date: "September 12, 2019"
+output:
+  pdf_document:
+    keep_md: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=F,warning=F,echo=F,fig_height=10,fig_width=7,cache = F)
+```
+
+*Packages*: HSAUR3, ISLR, boot
+
+*Collaborators*:
+
+Answer all questions specified on the problem and include a discussion on how your results answered/addressed the question.
+
+Submit your \textbf{.rmd} file with the knitted \textbf{PDF} (or knitted Word Document saved as a PDF). If you are having trouble with .rmd, let us know and we will help you, but both the .rmd and the PDF are required.
+
+This file can be used as a skeleton document for your code/write up. Please follow the instructions found under Content for Formatting and Guidelines. No code should be in your PDF write-up unless stated otherwise.
+
+For any question asking for plots/graphs, please do as the question asks as well as do the same but using the respective commands in the GGPLOT2 library. (So if the question asks for one plot, your results should have two plots. One produced using the given R-function and one produced from the GGPLOT2 equivalent). This doesn't apply to questions that don't specifically ask for a plot, however I still would encourage you to produce both.
+
+You do not need to include the above statements.
+
+Please do the following problems from the text book R Handbook and stated.
+
+1. Use the \textbf{bladdercancer} data from the \textbf{HSAUR3} library to answer the following questions
+    
+    ```{r, echo=FALSE}
+    library(HSAUR3)
+    data("bladdercancer")
+    bc.df = bladdercancer
+    #time = duration
+    #tumorsize = factor
+    #number = number of recurrent tomours
+    ```
+
+    a) Construct graphical and numerical summaries that will show the relationship between tumor size and the number of recurrent tumors. Discuss your discovery. (Hint: mosaic plot may be a great way to assess this)
+    
+    ```{r, echo=FALSE}
+    boxplot(bc.df$number ~ bc.df$tumorsize)
+    plot(bc.df$time, bc.df$number, col=bc.df$tumorsize, ylim = c(0,4))
+    legend(x='top', legend = c('<=3cm', '>3cm'), pch=1, col=c('black','red'), bty='o', cex=0.8)
+    mosaicplot(~bc.df$tumorsize  + bc.df$number, main='Size of primary tumour to the number of secondary tumours')
+    ```
+    
+    **A boxplot of the tumour size against the number of recurrent tumours shows that the distribution of is similar between the number of recurrent tumours and the size of the primary tumour. The median number of recurrent tumours was 1 for both size categories for the primary tumour.** 
+    
+    **Looking at a scatter plot which is plotting the number of tumours against the time after the removal of the primary tumour (split by size of the primary tumour) shows that none of the recorded patients had shown 0 recurrent tumours. It can also be seen that there are much less recorded observations following a patient with a tumour size greater than 3 cm.**
+    
+    **Finally a mosaic plot was created (as recommended) and against the number of observations where primary tumours were less than or equal to 3 cm in size is more than those with tumours greater than 3 cm in diameter. The mosaic plot also shows the distribution within each better than the boxplot since the mosaic plot breaks up the plot by the number of tumours. The number of individuals that have 1 recurrent tumour is about half for both groups of tumour classification.**
+    
+    ```{r, echo=FALSE}
+    summary(subset(bc.df, tumorsize == "<=3cm"))
+    ```
+    
+    ```{r, echo=FALSE}
+    summary(subset(bc.df, tumorsize == ">3cm"))
+    
+    ```
+    
+    **The range in summary statistics, the range of both primary tumour categories is from 1 to 4 recurrent tomours. The average number of recurrent tumours in patients with a primary tumour greater than 3 cm is 1.778 whereas the average number of recurrent tumours in patients with a primary tumour less than 3 cm is 1.455. However, the median number of tumours is 1 for both categories, just like the boxplot shows.**
+    
+    b) Build a Poisson regression that estimates the effect of size of tumor on the number of recurrent tumors.  Discuss your results.
+    
+    ```{r, echo=FALSE}
+    bc.model1 = glm(number~tumorsize, data=bc.df, family=poisson())
+    bc.model2 = glm(number~tumorsize + time, data=bc.df, family=poisson())
+    bc.model3 = glm(number~tumorsize + time + tumorsize*time, data=bc.df, family=poisson())
+    summary(bc.model1)
+    summary(bc.model2)
+    summary(bc.model3)
+    ```
+    
+    **The models created were done using different combinations of the tumour size and time after the primary tumour was removed to determine how many recurrent tumours there will be. The tumour size coefficient wasn't significantly different than zero for any of the models, nor was time. The Residual deviance was about 2.5x lower than the degrees of freedom for all 3 models, which is better than the lecture example but it is actually lower than the degrees of freedom. The AIC is lowest for the model using both *time* and *tumorsize*.**
+    
+    ```{r, echo=FALSE}
+    anova(bc.model1, bc.model2, bc.model3, test='Chisq')
+    ```
+    
+2. The following data is the number of new AIDS cases in Belgium between the years 1981-1993. Let $t$ denote time
+\begin{verbatim}
+y = c(12, 14, 33, 50, 67, 74, 123, 141, 165, 204, 253, 246, 240)
+t = 1:13
+\end{verbatim}
+Do the following 
+
+    a) Plot the relationship between AIDS cases against time. Comment on the plot
+    
+    ```{r, echo=FALSE}
+    y = c(12, 14, 33, 50, 67, 74, 123, 141, 165, 204, 253, 246, 240)
+    t = 1:13
+    
+    plot(t, y, main='AIDS cases in Belgium', xlab='Years after 1981', ylab='AIDS cases')
+    ```
+    
+    b) Fit a Poisson regression model $log(\mu_i)=\beta_0+\beta_1t_i$. Comment on the model parameters and residuals (deviance) vs Fitted plot.
+    
+    ```{r, echo=FALSE}
+    aids_model1 = glm(y~t, family=poisson())
+    summary(aids_model1)
+    plot(aids_model1, which = 1)
+    ```
+    
+    **The time metric seems to be significantly different than zero (p < 2x10^-16) when predicting the number of AIDS cases. The residual deviance is incredibly high, though, at 80.7 on 11 degrees of freedom. In lecture, this was stated to be do to over dispersion of the poisson distribution. The plot shows the residual vs fitted for the model and since the points don't 'bounce randomly' around the residual of zero, the assumption that the relationship is linear is not reasonable.**
+    
+    c) Now add a quadratic term  in time (\textit{ i.e., $log(\mu_i)=\beta_0+\beta_1t_i +\beta_2t_i^2$} ) and fit the model. Comment on the model parameters and assess the residual plots.
+    
+    ```{r, echo=FALSE}
+    aids_model2 = glm(y~t + poly(t, degree = 2), family=poisson())
+    summary(aids_model2)
+    plot(aids_model2, which = 1)
+    ```
+    
+    **This model shows that the time coefficient, both linear term and quadratic term, are significantly different from zero. The residual deviance is also much closer to that of the degrees of freedom (9.24 on 10 DOF). This low difference means that there is less overdispersion. Looking at the plot of residual vs fitted is much more balanced around 0 which indicates less error in the model.**
+    
+    d) Compare the two models using AIC. Which model is better? 
+    
+    **The first model without the quadratic term had an AIC of 166.37, while the second model with a 2 order polynomial had an AIC of 96.924. This value also shows that the second model fits the data better just like the residual deviance and plot had shown.**
+    
+    e) Use \textit{ anova()}-function to perform $\chi^2$ test for model selection. Did adding the quadratic term improve model?
+    
+    ```{r, echo=FALSE}
+    anova(aids_model1, aids_model2, test='Chisq')
+    ```
+    
+    **The chi-squared test indicates that the 2 models are significantly different from one-another and that adding the quadratic term did in fact improve the model. The chi-sq also shows the residual deviances and difference which is handy.**
+    
+3. Load the \textbf{ Default} dataset from \textbf{ISLR} library. The dataset contains information on ten thousand customers. The aim here is to predict which customers will default on their credit card debt. It is a 4 dimensional dataset with 10000 observations. You had developed a logistic regression model on HW \#2. Now consider the following two models 
+\begin{itemize}
+\item Model1 $\rightarrow$ Default = Student + balance 
+\item Model2 $\rightarrow$ Default = Balance 
+\end{itemize}
+For the two competing models do the following
+
+    a) With the whole data compare the two models (Use AIC and/or error rate)
+    
+    ```{r, echo=FALSE}
+    library(ISLR)
+    data('Default')
+    default.df = Default
+    
+    default.df$defs = ifelse(default.df$default == 'Yes', 1, 0)
+    
+    default_model1 = glm(default ~ student + balance, data = default.df, family = binomial())
+    default_model2 = glm(default ~ balance, data = default.df, family = binomial())
+    
+    MSE1 = mean((predict(default_model1, default.df, type = 'response') - default.df$defs)^2);MSE1
+    MSE2 = mean((predict(default_model2, default.df, type = 'response') - default.df$defs)^2);MSE2
+    
+    summary(default_model1)
+    summary(default_model2)
+    ```
+    
+    **The mean squared error of the model including both student and balance as predictors had a slightly lower (0.0213 v 0.0217) than the model with just balance as the preditor. Looking at AIC values from both models, the model with both student and balance was lower (AIC = 1577.7) than the model with just the balance (AIC = 1600.5). The residual deviance of both models was close but the student+balance model did acheive a lower value (1571.7 on 9997 DOF vs 1596.5 on 9998 DOF)**
+    
+    b) Use validation set approach and choose the best model. Be aware  that we have few people who defaulted in the data. 
+    
+    ```{r, echo=FALSE}
+    set.seed(123)
+    ind = sample(2, nrow(default.df), replace = TRUE, prob = c(0.8, 0.2))
+    train.default = default.df[ind == 1,]
+    test.default = default.df[ind == 2,]
+    
+    default_model3 = glm(default ~ student + balance, data = train.default, family = binomial())
+    default_model4 = glm(default ~ balance, data = train.default, family = binomial())
+    
+    MSE3 = mean((predict(default_model3, test.default, type='response')-test.default$defs)^2);MSE3
+    MSE4 = mean((predict(default_model4, test.default, type='response')-test.default$defs)^2);MSE4
+    summary(default_model3)
+    summary(default_model4)
+    ```
+    
+    **Using a train/test split of 80/20, the summaries show that the model with student and balance has a slightly lower residual deviance (1204.3 vs 1221.4) than the model that only has balance. The mean squared error for the student + balance model is also slightly lower (0.024 vs 0.025) than the balance model. This difference is incredibly minor, however. All coefficients are significantly different than zero at p<0.05.**
+    
+    c) Use LOOCV approach and choose the best model
+    
+    ```{r, echo=FALSE}
+    cost=function(r, pi=0)
+      mean(abs(r-pi)>0.5)
+    ```
+
+    ```{r, echo=FALSE}
+    library(boot)
+    set.seed(123)
+    
+    LOOCV1_1 = cv.glm(default.df, default_model1, cost)$delta[1];LOOCV1_1
+    ```
+    
+    ```{r, echo=FALSE}
+    set.seed(123)
+    
+    LOOCV1_2 = cv.glm(default.df, default_model2, cost)$delta[1];LOOCV1_2
+    ```
+    
+    **Using the test split from the previous part because it is taking a great deal of time.**
+    
+    **The model with student had shown a LOOCV error of 0.0267 while without student as input the LOOCV error was 0.0275. The better of the models here includes the student parameter in the model. These values are slightly further apart than the train/test split method, which is interesting.**
+    
+    d) Use 10-fold cross-validation approach and choose the best model
+    
+    ```{r, echo=FALSE}
+    CV10_1 = cv.glm(default.df, default_model1, K=10, cost)$delta[1];CV10_1
+    CV10_2 = cv.glm(default.df, default_model2, K=10, cost)$delta[1];CV10_2
+    ```
+    
+    **The better model of these 2 10-fold cross-validations is again the model with both student and balance as predictors. Similarly to the other approaches, the difference between having student and not having student as an input seems to make little difference.**
+    
+    Report validation misclassification (error) rate for both models in each of the three assessment methods. Discuss your results. 
+    
+    **Out of all of the models, the lowest error was in train/test split models. This was this was almost twice as low as the leave one out cross-validation. The highest error came from the model without student as an input in the k-fold cross-validation but it was only 0.0002 higher than the same model in LOO cross-validation.**
+    
+    **I had an issue with the LOOCV. I was trying to do the loop for the polynomial degree as my CV here, which was completely incorrect and instead changed to the *cv.glm()* as explained later in lecture.**
+
+4. In the \textbf{ISLR} library load the \textbf{Smarket} dataset. This contains Daily percentage returns for the S\&P 500 stock index between 2001 and 2005. There are 1250 observations and 9 variables. The variable of interest is Direction which is a factor with levels Down and Up indicating whether the market had a positive or negative return on a given day. Since the goal is to predict the direction of the stock market in the future, here it would make sense to use the data from years 2001 - 2004 as training and 2005 as validation. According to this, create a training set and testing set. Perform logistic regression and assess the error rate.  
+
+**I'm going to make the assumption that the return of today has less predictive power than the lag values and the volume of shares traded because what the market has done seems more valuable and there are a lot of different combinations that can be made with the other values in the data frame.**
+
+```{r, echo=FALSE}
+library(ISLR)
+data("Smarket")
+sm.df = Smarket
+sm.df$Dir = ifelse(sm.df$Direction == 'Up', 1, 0) 
+
+train.df = subset(sm.df, Year < 2005)
+test.df = subset(sm.df, Year == 2005)
+
+sm.1 = glm(Dir ~ Lag1, data = train.df, family = binomial())
+sm.2 = glm(Dir ~ Lag1 + Lag2, data = train.df, family = binomial())
+sm.3 = glm(Dir ~ Lag1 + Lag2 + Lag3, data = train.df, family = binomial())
+sm.4 = glm(Dir ~ Lag1 + Lag2 + Lag3 + Lag4, data = train.df, family = binomial())
+sm.5 = glm(Dir ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5, data = train.df, family = binomial())
+sm.6 = glm(Dir ~ Lag1 * Lag2 * Lag3 * Lag4 * Lag5, data = train.df, family = binomial())
+sm.7 = glm(Dir ~ Lag1 * Lag2 + Lag2 * Lag3 + Lag3 * Lag4 + Lag4 * Lag5, data = train.df, family = binomial())
+sm.8 = glm(Dir ~ Lag1 * Lag2 * Lag3 * Lag4 * Lag5 + Volume, data = train.df, family = binomial())
+sm.9 = glm(Dir ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume, data = train.df, family = binomial())
+```
+
+```{r, echo=FALSE}
+anova(sm.1, sm.2, sm.3, sm.4, sm.5, sm.6, sm.7, sm.8, sm.9, test='Chisq')
+```
+
+**Model 7 and model 8 are statistically significant using a chi-sq at p<0.1, with model 7 being slightly more significant. I'll use model 7 since it is the most significant**
+
+```{r, echo=FALSE}
+summary(sm.7)
+plot(sm.5, which=1)
+```
+
+**This model has each lag day interacting with the next day, e.g. day 1 with day 2 and day 2 with day 3 and so on. Even though its p=0.058, none fo the term coefficients are statistically significant from zero. Looking at the residual vs fitted plot, there appears to be 2 distinct groups distributed fairly equally about Residuals=0.**
+
+**Train test split error**
+
+```{r, echo=FALSE}
+MSE5 = mean((predict(sm.7, test.df, type='response')-test.df$Dir)^2);MSE5
+```
+
+**Leave out one cross-validation error**
+
+```{r, echo=FALSE}
+set.seed(123)
+
+LOOCV1_3 = cv.glm(test.df, sm.7, cost)$delta[1];LOOCV1_2
+```
+
+**K-fold validation error**
+
+```{r, echo=FALSE}
+set.seed(123)
+CV10_3 = cv.glm(test.df, sm.7, K=10, cost)$delta[1];CV10_3
+```
+
+**The best model for predicting whether the market will move up or down uses the previous 5 days percentage return. The lowest error came from the train/test split MSE (0.2480854) with LOO cross-validation being only slightly higher 0.0275. The k-fold of 10 has a cross-validation error of 0.5 on the test set, which is interestingly high compared to the other methods.**
+
+**An interesting thing that I noticed while running the LOO and K-fold cross-validations was that there were a fair amount of errors that get thrown if the same data frame isn't used for testing and training the model, except for problem number 4 when that would return NA but the train and test data frames would produce a value (with errors or warnings). I don't know why this is an issue or how to fix it.**
+
+Resources:
+
++ newonlinecourses.science.psu.edu
++ StackExchange
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
