@@ -1,0 +1,727 @@
+---
+title: 'Density Estimation: Chapter 8 on HB'
+author: "Semhar Michael and CPS"
+subtitle: 'Non-parameteric density estimation: Kernel density estimation'
+output:
+  beamer_presentation: default
+  ioslides_presentation: default
+---
+
+## Chapter 8 Libraries
+\tiny
+```{r}
+library(HSAUR3)
+library("KernSmooth")
+library("flexmix")
+library("boot")
+```
+
+## Old Faithful Data
+
+Geysers are natural fountains that shoot up into the air, at more or less regular intervals, a column of heated water and steam. 
+    
+    - Old Faithful can vary in height from 100 to 180 feet 
+    with an average near 130 to 140 feet. 
+    - Eruptions normally last between 1.5 to 5 minutes.
+
+From August 1 to August 15, 1985, Old Faithful was observed and the waiting times between successive eruptions noted. 
+
+    - There were 300 eruptions observed, so 299 waiting 
+    times were (in minutes) recorded (Table 8.1).
+
+## Old Faithful Data Start of Table 8.1
+```{r}
+head(faithful)
+```
+
+## Motivation: Histogram
+\tiny
+Theory is well developed for modeling data with standard distributional form. However, what if real data has more complicated pattern?
+```{r, out.width = '300px', out.height = '200px'}
+par(mfrow = c(1,2))
+hist(faithful$eruptions, breaks = 20, freq = FALSE, main = "Eruptions", xlab = "")
+hist(faithful$waiting, breaks = 20, freq  = FALSE, main = "Waiting time", xlab = "")
+```
+
+
+##Density Estimation
+
+\textsl{``The goal of density estimation is to approximate the probability density function of a random variable (univariate or multivariate) given a sample of observations of the variable.''}
+
+\begin{itemize}
+\item Univariate histograms are a simple example of a density estimate.
+
+\item Two-dimensional histograms can also be constructed. 
+\end{itemize}
+Histograms are used for counting and displaying the distribution of a variable; they are effective for neither. 
+\begin{itemize}
+\item The basic goal is to have the data speak for themselves and so one of a variety of non-parametric estimation procedures that are now available might be used. 
+\end{itemize}
+
+## Two-dimensional density smoothScatter
+```{r}
+par(mfrow = c(1,2))
+plot(faithful);  smoothScatter(faithful)
+```
+
+
+
+## Code for Histograms 
+\tiny
+```{r}
+scatterhist = function(x, y, xlab="", ylab=""){
+  zones=matrix(c(2,0,1,3), ncol=2, byrow=TRUE)
+  layout(zones, widths=c(4/5,1/5), heights=c(1/5,4/5))
+  xhist = hist(x, plot=FALSE)
+  yhist = hist(y, plot=FALSE)
+  top = max(c(xhist$counts, yhist$counts))
+  par(mar=c(3,3,1,1))
+  plot(x,y)
+  par(mar=c(0,3,1,1))
+  barplot(xhist$counts, axes=FALSE, ylim=c(0, top), space=0)
+  par(mar=c(3,0,1,1))
+  barplot(yhist$counts, axes=FALSE, xlim=c(0, top), space=0, horiz=TRUE)
+  par(oma=c(3,3,0,0))
+  mtext(xlab, side=1, line=1, outer=TRUE, adj=0, 
+    at=.8 * (mean(x) - min(x))/(max(x)-min(x)))
+  mtext(ylab, side=2, line=1, outer=TRUE, adj=0, 
+    at=(.8 * (mean(y) - min(y))/(max(y) - min(y))))
+}
+```
+
+Code from http://www.r-bloggers.com/example-8-41-scatterplot-with-marginal-histograms/
+
+## Histograms
+```{r}
+scatterhist(faithful[,1], faithful[,2])
+```
+
+## Just for fun combine both (Density and histograms)
+\tiny
+```{r}
+scatterhist2 = function(x, y, xlab="", ylab=""){
+  zones=matrix(c(2,0,1,3), ncol=2, byrow=TRUE)
+  layout(zones, widths=c(4/5,1/5), heights=c(1/5,4/5))
+  xhist = hist(x, plot=FALSE)
+  yhist = hist(y, plot=FALSE)
+  top = max(c(xhist$counts, yhist$counts))
+  par(mar=c(3,3,1,1))
+  ##
+  smoothScatter(x,y)
+  points(x,y, col="red", pch=16)
+  ##
+  par(mar=c(0,3,1,1))
+  barplot(xhist$counts, axes=FALSE, ylim=c(0, top), space=0)
+  par(mar=c(3,0,1,1))
+  barplot(yhist$counts, axes=FALSE, xlim=c(0, top), space=0, horiz=TRUE)
+  par(oma=c(3,3,0,0))
+  mtext(xlab, side=1, line=1, outer=TRUE, adj=0, 
+    at=.8 * (mean(x) - min(x))/(max(x)-min(x)))
+  mtext(ylab, side=2, line=1, outer=TRUE, adj=0, 
+    at=(.8 * (mean(y) - min(y))/(max(y) - min(y))))
+}
+```
+
+## Just for fun: combine both (Density and histograms)
+```{r}
+scatterhist2(faithful[,1], faithful[,2])
+```
+
+
+##Kernel Density Estimators 
+
+A probability density can be expressed as follows
+\[f\left( t \right) = \mathop {\lim }\limits_{h \to 0} \frac{1}{{2h}}P\left( {t - h \le X < t + h} \right)\]
+
+Which can be estimated as follows-
+\[\hat f\left( t \right) = \frac{1}{{2nh}}\sum\limits_{i = 1}^n {I\left( {t - h \le X_i < t + h} \right)} \]
+or more generally as 
+\[\hat f\left( t \right) = \frac{1}{{nh}}\sum\limits_{i = 1}^n {K\left( {\frac{t - X_i}{h}} \right)} \]
+
+
+##Common Kernels
+
+\begin{description}
+\item[ rectangular:]\[K\left( x \right) = 1/2\,\,for\,\,\left| x \right| < 1\]
+\item[triangular:]\[K\left( x \right) = 1 - \,\left| x \right|\,for\,\,\left| x \right| < 1\]
+\item[Gaussian:] \[K\left( x \right) = \frac{1}{{\sqrt {2\pi } }}{e^{ - \frac{{{x^2}}}{2}}}\]
+\end{description}
+
+##DE-kernel figures
+```{r eval=FALSE}
+rec <- function(x) (abs(x) < 1) * 0.5
+tri <- function(x) (abs(x) < 1) * (1 - abs(x))
+gauss <- function(x) 1/sqrt(2*pi) * exp(-(x^2)/2)
+x <- seq(from = -3, to = 3, by = 0.001)
+plot(x, rec(x), type = "l", ylim = c(0,1), lty = 1, 
+     ylab = expression(K(x)))
+lines(x, tri(x), lty = 2)
+lines(x, gauss(x), lty = 3)
+legend(-3, 0.8, legend = c("Rectangular", "Triangular", 
+       "Gaussian"), lty = 1:3, title = "kernel functions", 
+       bty = "n")
+```
+
+##DE-kernel figures
+```{r echo=FALSE}
+rec <- function(x) (abs(x) < 1) * 0.5
+tri <- function(x) (abs(x) < 1) * (1 - abs(x))
+gauss <- function(x) 1/sqrt(2*pi) * exp(-(x^2)/2)
+x <- seq(from = -3, to = 3, by = 0.001)
+plot(x, rec(x), type = "l", ylim = c(0,1), lty = 1, 
+     ylab = expression(K(x)))
+lines(x, tri(x), lty = 2)
+lines(x, gauss(x), lty = 3)
+legend(-3, 0.8, legend = c("Rectangular", "Triangular", 
+       "Gaussian"), lty = 1:3, title = "kernel functions", 
+       bty = "n")
+```
+
+##DE-kernel figures
+\footnotesize
+```{r eval=FALSE}
+w <- options("width")$w
+options(width = 66)
+
+x <- c(0, 1, 1.1, 1.5, 1.9, 2.8, 2.9, 3.5)
+n <- length(x)
+xgrid <- seq(from = min(x) - 1, to = max(x) + 1, by = 0.01) 
+h <- 0.4
+bumps <- sapply(x, function(a) gauss((xgrid - a)/h)/(n * h))
+
+plot(xgrid, rowSums(bumps), ylab = expression(hat(f)(x)),
+     type = "l", xlab = "x", lwd = 2)
+rug(x, lwd = 2)
+out <- apply(bumps, 2, function(b) lines(xgrid, b))
+
+```
+
+
+
+##DE-kernel figures
+
+```{r echo=FALSE}
+w <- options("width")$w
+options(width = 66)
+
+
+###################################################
+### code chunk number 6: DE-x-bumps-data
+###################################################
+x <- c(0, 1, 1.1, 1.5, 1.9, 2.8, 2.9, 3.5)
+n <- length(x)
+
+
+###################################################
+### code chunk number 7: DE-x-bumps-gaussian
+###################################################
+xgrid <- seq(from = min(x) - 1, to = max(x) + 1, by = 0.01) 
+
+
+###################################################
+### code chunk number 8: DE-x-bumps-bumps
+###################################################
+h <- 0.4
+bumps <- sapply(x, function(a) gauss((xgrid - a)/h)/(n * h))
+
+
+###################################################
+### code chunk number 9: DE-reoptions
+###################################################
+
+###################################################
+### code chunk number 10: DE-x-bumps
+###################################################
+
+plot(xgrid, rowSums(bumps), ylab = expression(hat(f)(x)),
+     type = "l", xlab = "x", lwd = 2)
+rug(x, lwd = 2)
+out <- apply(bumps, 2, function(b) lines(xgrid, b))
+
+
+
+```
+
+
+
+## Code used to produce above plot
+See Page 153 of text book
+
+Attempt to do the same but with triangular kernel function with h = 0.8
+```{r echo = FALSE}
+x <- c(0, 1, 1.1, 1.5, 1.9, 2.8, 2.9, 3.5)
+n <- length(x)
+xgrid <- seq(from = min(x) - 1, to = max(x) + 1, by = 0.01) 
+h <- 0.8
+bumps <- sapply(x, function(a) tri((xgrid - a)/h)/(n * h))
+plot(xgrid, rowSums(bumps), ylab = expression(hat(f)(x)),
+     type = "l", xlab = "x", lwd = 2)
+rug(x, lwd = 2)
+out <- apply(bumps, 2, function(b) lines(xgrid, b))
+
+```
+
+## DE-faithful-density
+Three kernels with bandwidth = 12 - Page 158
+```{r echo=FALSE}
+data("faithful", package = "datasets")
+x <- faithful$waiting
+layout(matrix(1:3, ncol = 3))
+hist(x, xlab = "Waiting times (in min.)", ylab = "Frequency",
+     probability = TRUE, main = "Gaussian kernel", 
+     border = "gray")
+lines(density(x, width = 12), lwd = 2)
+rug(x)
+hist(x, xlab = "Waiting times (in min.)", ylab = "Frequency",
+     probability = TRUE, main = "Rectangular kernel", 
+     border = "gray")
+lines(density(x, width = 12, window = "rectangular"), lwd = 2)
+rug(x)
+hist(x, xlab = "Waiting times (in min.)", ylab = "Frequency",
+     probability = TRUE, main = "Triangular kernel", 
+     border = "gray")
+lines(density(x, width = 12, window = "triangular"), lwd = 2)
+rug(x)
+
+```
+
+## Bandwidth Choice
+
+
+\begin{quote}
+According to Venables and Ripley (2002) the bandwidth should be chosen to be proportional to $n^{-1/5}$; unfortunately the constant of proportionality depends on the unknown density. The tricky problem of bandwidth estimation is considered in detail in Silverman (1986).
+\end{quote}
+
+## Bandwidth choice
+```{r echo = FALSE}
+#install.packages("benchden")
+library(benchden)  # load special distributions
+
+#----------------------------------------------------------------
+# Sample 
+#----------------------------------------------------------------
+num = 22            # distribution number (from benchden package)
+set.seed(100)
+n = 100
+x = rberdev(n,num)  # generate sample of size n
+truedens <- function(x) dberdev(x,dnum=num)  # true density
+
+par(mfrow=c(2,3))
+plot(c(-3,3),c(0,.5),typ='n',xlab='x',ylab='density',las=1)
+bw = .5
+title(paste("Gaussian kernel, bw =",bw))
+grid()
+lines(density(x,width=bw,kernel='gaussian'))
+rug(x)
+curve(truedens,-3,3,add=TRUE,col=4,lwd=1)
+legend("topleft", col = 4, lwd = 1, "True density", bty = "n")
+
+plot(c(-3,3),c(0,.5),typ='n',xlab='x',ylab='density',las=1)
+bw = 1
+title(paste("Gaussian kernel, bw =",bw))
+grid()
+lines(density(x,width=bw,kernel='gaussian'))
+rug(x)
+curve(truedens,-3,3,add=TRUE,col=4,lwd=1)
+legend("topleft", col = 4, lwd = 1, "True density", bty = "n")
+
+plot(c(-3,3),c(0,.5),typ='n',xlab='x',ylab='density',las=1)
+bw = 5
+title(paste("Gaussian kernel, bw =",bw))
+grid()
+lines(density(x,width=bw,kernel='gaussian'))
+rug(x)
+curve(truedens,-3,3,add=TRUE,col=4,lwd=1)
+legend("topleft", col = 4, lwd = 1, "True density", bty = "n")
+
+plot(c(-3,3),c(0,.5),typ='n',xlab='x',ylab='density',las=1)
+bw = .5
+title(paste("Triangular kernel, bw =",bw))
+grid()
+lines(density(x,width=bw,kernel='triangular'))
+rug(x)
+curve(truedens,-3,3,add=TRUE,col=4,lwd=1)
+legend("topleft", col = 4, lwd = 1, "True density", bty = "n")
+
+plot(c(-3,3),c(0,.5),typ='n',xlab='x',ylab='density',las=1)
+bw = 1
+title(paste("Triangular kernel, bw =",bw))
+grid()
+lines(density(x,width=bw,kernel='triangular'))
+rug(x)
+curve(truedens,-3,3,add=TRUE,col=4,lwd=1)
+legend("topleft", col = 4, lwd = 1, "True density", bty = "n")
+
+plot(c(-3,3),c(0,.5),typ='n',xlab='x',ylab='density',las=1)
+bw = 5
+title(paste("Triangular kernel, bw =",bw))
+grid()
+lines(density(x,width=bw,kernel='triangular'))
+rug(x)
+curve(truedens,-3,3,add=TRUE,col=4,lwd=1)
+legend("topleft", col = 4, lwd = 1, "True density", bty = "n")
+
+par(mfrow=c(1,1))
+
+```
+
+##Bandwidth Selection
+
+What bandwidth $h$ should we use?
+
+- ISE Cross-Validation (UCV)
+$$R(h) = \int \hat f(x;h)^2 - \frac{2}{n}\sum_{i=1}^n \hat f_{-1}(x_i;h)$$
+In density, use bw="ucv"
+
+- MLE Cross-Validation (Leave-one-out)
+$$R(h) = - \frac{1}{n} \sum_{i=1}^n \log\hat f_{-1}(x_i;h)$$
+
+- Others 
+In R using the 'density' function we can specify bw to be chosen using different criterion. Some choices include "SJ", "UCV", ...
+
+Default in 'density' is Rule of thumb given in Silverman (1986).
+
+
+## CYGOB1 Data
+\begin{quotation}
+The Hertzsprung-Russell (H-R) diagram forms the basis of the theory of stellar evolution. The diagram is essentially a plot of the energy output of stars plotted against their surface temperature. Data from the H-R diagram of Star Cluster CYG OB1, calibrated according to Vanisma and De Greve (1972) are shown in Table 8.2 (from Hand et al., 1994).
+\end{quotation}
+
+##CYGOB1
+\footnotesize 
+```{r}
+data(CYGOB1)
+head(CYGOB1)
+summary(CYGOB1)
+```
+
+##CYGOB1
+\tiny
+
+```{r}
+smoothScatter(CYGOB1,nbin = 10, bandwidth = c(.2, .5))
+points(CYGOB1, pch=16, col="red")
+```
+
+## Bivariate Density Estimator
+
+The bivariate estimator for data $(x_1, y_1)$, $(x_2, y_2)$, . . . , $(x_n, y_n)$ is defined as:
+
+\[\hat f\left( {x,y} \right) = \frac{1}{{n{h_x}{h_y}}}\sum\limits_{i = 1}^n {K\left( {\frac{{x - {x_i}}}{{{h_x}}},\,\,\frac{{y - {y_i}}}{{{h_Y}}}} \right)} \]
+
+
+
+## Bivariate Kernels
+
+Bivariate density estimation
+
+Standard bivariate normal density
+\[K\left( {x,\,\,y} \right) = \frac{1}{{2\pi }}{e^{ - \frac{1}{2}({x^2} + {y^2}})}\,\,\]
+
+Epanechnikov kernel
+\[K\left( {x,\,\,y} \right) = \frac{2}{\pi }\left( {1 - {x^2} + {y^2}} \right),\,\,\,for\,\,{x^2} + {y^2} < 1\,\,\]
+
+## Epanechnikov kernel 
+```{r eval=FALSE}
+###################################################
+### code chunk number 11: DE-epakernel-fig
+###################################################
+epa <- function(x, y) 
+    ((x^2 + y^2) < 1) * 2/pi * (1 - x^2 - y^2)
+x <- seq(from = -1.1, to = 1.1, by = 0.05)
+epavals <- sapply(x, function(a) epa(a, x))
+persp(x = x, y = x, z = epavals, xlab = "x", ylab = "y", 
+      zlab = expression(K(x, y)), theta = -35, 
+      axes = TRUE, box = TRUE)
+
+```
+
+
+
+## Epanechnikov kernel 
+```{r echo=FALSE}
+###################################################
+### code chunk number 11: DE-epakernel-fig
+###################################################
+epa <- function(x, y) 
+    ((x^2 + y^2) < 1) * 2/pi * (1 - x^2 - y^2)
+x <- seq(from = -1.1, to = 1.1, by = 0.05)
+epavals <- sapply(x, function(a) epa(a, x))
+persp(x = x, y = x, z = epavals, xlab = "x", ylab = "y", 
+      zlab = expression(K(x, y)), theta = -35, axes = TRUE, 
+      box = TRUE)
+
+```
+
+
+## 2-D DE-kernel figures
+```{r}
+library("KernSmooth")
+data("CYGOB1", package = "HSAUR3")
+CYGOB1d <- bkde2D(CYGOB1, 
+          bandwidth = sapply(CYGOB1, dpik))
+```
+
+## 2-D DE-kernel figures
+\tiny
+```{r}
+contour(x = CYGOB1d$x1, y = CYGOB1d$x2, z = CYGOB1d$fhat, 
+xlab = "log surface temperature",
+ylab = "log light intensity")
+```
+
+## 2D DE - kernel figures - add points
+\tiny
+
+```{r}
+contour(x = CYGOB1d$x1, y = CYGOB1d$x2, z = CYGOB1d$fhat, 
+xlab = "log surface temperature",
+ylab = "log light intensity")
+points(CYGOB1, pch=16, col="red")
+```
+
+
+## Plot
+\tiny
+```{r }
+persp(x = CYGOB1d$x1, y = CYGOB1d$x2, z = CYGOB1d$fhat,
+        xlab = "log surface temperature",
+        ylab = "log light intensity",
+        zlab = "estimated density",
+        theta = -35, axes = TRUE, box = TRUE)
+```
+
+
+## A Parametric Density Estimate for the Old Faithful Data
+
+```{r}
+head(faithful, n = 6)
+```
+
+
+
+We will use a parametric mixture model to  estimate the univariate Old Faithful data-
+ 
+
+
+## Old Faithful Data
+
+```{r echo=FALSE}
+hist(faithful$waiting,freq = F)
+lines(density(faithful$waiting))
+library("mclust")
+```
+
+## MCLUST
+
+* Now we will look at a model based clustering approach to finding estimating the density.
+
+* This approach is based on grouping (*or clustering*) sub sets of the data together and then letting the group suggest the normal density that best discribes that group.
+
+    * This allows for less variable model fits than the non-parametric density estimation..... but at the expense of the possible *bias*.
+
+```{r, echo= T,  eval=F}
+install.packages("mclust")
+library("mclust")
+```
+
+\begin{eqnarray*}
+f\left(t\right)&=&\pi_1 f_1\left(t\right)+\pi_2 f_2\left(t\right)+\ldots+\pi_k f_k\left(t\right)\\
+&=&\sum_{j=1}^{k}\pi_j f_j\left(t\right)
+\end{eqnarray*}
+
+## Normal Mixtures
+
+* Normaly we will assume that each of the mixture components are normal...
+
+$$ f_j(t)= \frac{1}{\sqrt{2\pi\sigma^2_j}}e^{-\frac{1}{2} \left(\frac{t-\mu_j}{\sigma_j}\right)^2}$$
+* Sometimes we will abuse notation and refer to these components as 
+
+$$f_j(t)=dnorm(\mu_j, \sigma_j^2)\left(t\right)$$
+
+
+## Model Fits
+
+* mclust uses the EM- algorithm
+
+    1- First guess group membership.
+    
+    2- Estimate parameters with Maximium Likelihood Estimates.
+    
+    3- Replace group guesses with Expected Group Membership.
+    
+    * Repeat 2- and 3- until the algorithm stops updating.
+    
+* There are a number of details related to contraints of the parameter spaces that limit how flexible the models that this algorithm can be applied to.
+
+##  Model Fits
+
+\footnotesize
+```{r}
+mix.mod.2=Mclust(data=faithful$waiting, G=2)
+summary(mix.mod.2)
+
+```
+
+##  Model Fits
+
+\footnotesize
+```{r}
+
+names(mix.mod.2)
+```
+
+## Model Fits
+\footnotesize
+```{r}
+mix.mod.2$parameters
+```
+
+## Model Fits Code
+
+\tiny
+```{r , eval=F}
+xs=seq(30, 120, .01)
+hist(faithful$waiting,freq = F, ylim=c(0, .06), xlim=c(20, 120))
+lines(density(faithful$waiting))
+lines(xs, mix.mod.2$parameters$pro[1]*dnorm(xs, 
+                mix.mod.2$parameters$mean[1], sqrt(mix.mod.2$parameters$variance$sigmasq)), 
+      col="darkgrey", lw=3)
+
+
+lines(xs, mix.mod.2$parameters$pro[2]*dnorm(xs, 
+                mix.mod.2$parameters$mean[2], sqrt(mix.mod.2$parameters$variance$sigmasq)), 
+      col="red", lw=3)
+
+lines(xs, mix.mod.2$parameters$pro[1]*dnorm(xs, 
+                mix.mod.2$parameters$mean[1], sqrt(mix.mod.2$parameters$variance$sigmasq))+
+        mix.mod.2$parameters$pro[2]*dnorm(xs, 
+                mix.mod.2$parameters$mean[2], sqrt(mix.mod.2$parameters$variance$sigmasq)), 
+      col="blue", lw=.75)
+rug(faithful$waiting[mix.mod.2$classification==1], 
+    col = "darkgrey", lw=1.5)
+rug(faithful$waiting[mix.mod.2$classification==2], 
+    col = "red", lw=1.5)
+
+```
+
+## Model Fits
+\footnotesize
+```{r echo=FALSE}
+xs=seq(30, 120, .01)
+hist(faithful$waiting,freq = F, ylim=c(0, .06), xlim=c(20, 120))
+lines(density(faithful$waiting))
+lines(xs, mix.mod.2$parameters$pro[1]*dnorm(xs, 
+                mix.mod.2$parameters$mean[1], sqrt(mix.mod.2$parameters$variance$sigmasq)), col="darkgrey", lw=3)
+
+
+lines(xs, mix.mod.2$parameters$pro[2]*dnorm(xs, 
+                mix.mod.2$parameters$mean[2], sqrt(mix.mod.2$parameters$variance$sigmasq)), col="red", lw=3)
+
+lines(xs, mix.mod.2$parameters$pro[1]*dnorm(xs, 
+                mix.mod.2$parameters$mean[1], sqrt(mix.mod.2$parameters$variance$sigmasq))+
+        mix.mod.2$parameters$pro[2]*dnorm(xs, 
+                mix.mod.2$parameters$mean[2], sqrt(mix.mod.2$parameters$variance$sigmasq)), col="blue", lw=.75)
+rug(faithful$waiting[mix.mod.2$classification==1], col = "darkgrey", lw=1.5)
+rug(faithful$waiting[mix.mod.2$classification==2], col = "red", lw=1.5)
+
+```
+
+## Model Fits:BIC
+
+\footnotesize
+```{r}
+mclustBIC(faithful$waiting)
+```
+
+## Model Fits:BIC
+
+\footnotesize
+```{r}
+plot(mclustBIC(faithful$waiting))
+
+```
+
+
+## Next Time
+
+We will explore multivaraite models.
+
+
+## Multivariate Model Based Clustering
+
+As before, we are working with a $k-$component mixture:
+\[
+f\left(t\right)=\sum_{j=1}^{k}\pi_j f_j\left(t\right)
+\]
+
+* This time, we will assume that each of the mixture components are multivaraite normal...
+
+$$f_j(t)= \left(2\pi\right)^{-p/2} |\Sigma_j|^{-1/2}\times e^{-\frac{1}{2} \left(t-\mu_j\right)^t\Sigma_j^{-1}\left(t-\mu_j\right)}$$
+* Sometimes this will be written as-
+
+$$f_j(t)=dnorm(\mu_j, \Sigma_j)\left(t\right)$$
+
+## A fit to old faithful
+
+```{r}
+mclust.mod.2d=Mclust(faithful, G=2)
+summary(mclust.mod.2d)
+```
+
+
+## A fit to old faithful
+```{r}
+plot(mclust.mod.2d, what="classification")
+```
+
+
+
+
+## Mclust VVE (ellipsoidal, equal orientation) 
+
+> "Starting with version 5.0 of mclust, four additional models have been included: EVV, VEE, EVE, VVE. Models EVV and VEE are estimated using the methods described in Celeux and Govaert (1995), and the estimation of models EVE and VVE is carried out using the approach discussed by Browne and McNicholas (2014). In the models VEE, EVE and VVE it is assumed that the mixture components share the same orientation matrix. This assumption allows for a parsimonious characterisation of the clusters, while still retaining flexibility in defining volume and shape."
+
+\footnotesize
+  * Scrucca, Luca et al. “Mclust 5: Clustering, Classification and Density Estimation Using Gaussian Finite Mixture Models.” The R journal 8.1 (2016): 289–317.
+  
+  * Browne RP, McNicholas PD. Estimating common principal components in high dimensions. Advances in Data Analysis and Classification. 2014;8(2):217–226.
+
+
+## Unconstrained Fit
+
+```{r}
+mclust.mod.2d=Mclust(faithful, G=1:20)
+summary(mclust.mod.2d)
+```
+
+
+## Common Cov Structures (EEE)
+![MClust Cov's](diagrams/Cov.struct.png)
+
+## Unconstrained Fit
+```{r, echo=F}
+par(mfrow=c(1,2))
+plot(mclust.mod.2d, what="density", type = "image", col = topo.colors(50))
+plot(mclust.mod.2d, what="classification", col = grey(0.8))
+par(mfrow=c(1,1))
+```
+
+
+## Diabetes Example
+
+This data set is a fun one to play with when you have some time:
+```{r, eval=FALSE}
+data(diabetes)
+class = diabetes$class
+table(class)
+X = diabetes[,-1]
+head(X)
+
+```
+
+
+
+
+
+
