@@ -13,9 +13,6 @@ output:
 *Packages*: MASS, GGPlot, Mclust, HSAUR3
 
 *Collaborators*:
-
-
-
 <!--
 Very easy to let the data lie to you
 

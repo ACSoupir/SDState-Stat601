@@ -15,9 +15,6 @@ knitr::opts_chunk$set(message=F,warning=F,echo=F,fig_height=10,fig_width=7,cache
 *Packages*: MASS, GGPlot, Mclust, HSAUR3
 
 *Collaborators*:
-
-
-
 <!--
 Very easy to let the data lie to you
 
