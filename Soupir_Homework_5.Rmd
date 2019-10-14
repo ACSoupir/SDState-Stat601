@@ -1,0 +1,343 @@
+---
+title: "Homework 5"
+author: "Alex Soupir"
+date: "October 13, 2019"
+output:
+  pdf_document:
+    keep_md: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=F,warning=F,echo=F,fig_height=10,fig_width=7,cache = F)
+```
+
+*Packages*: vcd, lattice, randomForest, party, partykit, mboost, TH.data, ipred, rpart, randomForest, mlbench, tidyverse, boot, adabag
+
+*Collaborators*:
+
+Answer all questions specified on the problem and include a discussion on how your results answered/addressed the question.
+
+Submit your \textbf{.rmd} file with the knitted \textbf{PDF} (or knitted Word Document saved as a PDF). If you are having trouble with .rmd, let us know and we will help you, but both the .rmd and the PDF are required.
+
+This file can be used as a skeleton document for your code/write up. Please follow the instructions found under Content for Formatting and Guidelines. No code should be in your PDF write-up unless stated otherwise.
+
+For any question asking for plots/graphs, please do as the question asks as well as do the same but using the respective commands in the GGPLOT2 library. (So if the question asks for one plot, your results should have two plots. One produced using the given R-function and one produced from the GGPLOT2 equivalent). This doesn't apply to questions that don't specifically ask for a plot, however I still would encourage you to produce both.
+
+You do not need to include the above statements.
+
+Please do the following problems from the text book R Handbook and stated.
+
+<!--
+1. Draw B bootstrap samples from the original data set i.e. we draw n out of n observattion with replacement from our n original observations
+2. For the bootstrap sample grow a tree as follows: - At each node, randomly select q of the p predictors and restrict the splits based on the random subset of the q variables (q<<p)
+3. Repeat the above 2 steps and generate a forest
+
+Random forest: the above steps 1,2,3
+Baggin is the above steps without step 2
+Braggin is the same as baggin but take median instead of average
+Bumping is the same as bagging but choose the best instead of average
+Model aveageing is fit different models to original data and then take weighted averages based on same criterion (BIC/AIC)
+Adaboost: using weights across trees rather than averages
+
+cite seed
+
+cp = complexity parameter
+
+
+-->
+
+1. The \textbf{BostonHousing} dataset reported by Harrison and Rubinfeld (1978) is available as data.frame package \textbf{mlbench} (Leisch and Dimitriadou, 2009). The goal here is to predict the median value of owner-occupied homes  (medv variable, in 1000s USD) based on other predictors in the dataset. Use this dataset to do the following 
+
+    a.) Construct a regression tree using rpart(). The following need to be included in your discussion. How many nodes did your tree have? Did you prune the tree? Did it decrease the number of nodes? What is the prediction error (calculate MSE)?  Provide a plot of the predicted vs. observed values. Plot the final tree.
+    
+    ```{r regression_tree, echo=FALSE}
+    library("vcd")
+    library("lattice")
+    library("randomForest")
+    library("party")
+    library("partykit")
+    library("mboost")
+    library("TH.data")
+    library("ipred")
+    library("rpart")
+    library(mlbench)
+    library(tidyverse)
+    
+    data(BostonHousing)
+    bhous = BostonHousing
+    
+    #constructing trees
+    set.seed(333)
+    bhous_rpart = rpart( medv ~ ., data =bhous,
+                         control=rpart.control(minsplit=10))
+    
+    opt <- which.min(bhous_rpart$cptable[,"xerror"])
+    
+    cp = bhous_rpart$cptable[opt, "CP"]
+    bhous_prune = prune(bhous_rpart, cp = cp)
+    #bhous_prune
+    
+    plot(as.party(bhous_rpart), 
+         tp_args = list(id = FALSE))
+    plot(as.party(bhous_prune),
+         tp_args = list(id = FALSE))
+    
+    cat("Tree without Pruning: \n")
+    medv_pred <- predict(bhous_rpart, newdata = bhous)
+    single.mse = mean((bhous$medv - medv_pred)^2)
+    single.mse
+    cat("\nTree with Pruning: \n")
+    medv_pred2 <- predict(bhous_prune, newdata = bhous)
+    prune.mse = mean((bhous$medv - medv_pred2)^2)
+    prune.mse
+    
+    xlim = range(bhous$medv)
+    plot(medv_pred ~ medv, data = bhous, xlab = "Observed", 
+         ylab = "Predicted", main="Unpruned Tree", ylim = xlim, xlim = xlim)
+    abline(a = 0, b = 1)
+    
+    xlim = range(bhous$medv)
+    plot(medv_pred2 ~ medv, data = bhous, xlab = "Observed", 
+         ylab = "Predicted", main="Pruned Tree", ylim = xlim, xlim = xlim)
+    abline(a = 0, b = 1)
+    
+    ```
+    
+    **I created a base tree as well as a pruned tree after setting seed to *333*. Both trees are using all parameters from the data frame to build the tree. Both trees had 8 internal nodes and 8 terminal nodes and both had the same MSE of 12.71556. Looking at the predicted vs observed values, the variance increases as the medv increases.**
+    
+    b) Perform bagging with 50 trees. Report the prediction error (MSE). Provide the predicted vs observed plot. 
+    
+    ```{r, echo=FALSE}
+    set.seed(333)
+    trees <- vector(mode = "list", length = 50)
+    n <- nrow(bhous)
+    bootsamples <- rmultinom(length(trees), n, rep(1, n)/n)
+    mod <- rpart(medv ~ ., data = bhous, 
+                 control = rpart.control(xval = 0))
+    for (i in 1:length(trees))
+      trees[[i]] <- update(mod, weights = bootsamples[,i])
+    
+    
+    ## RP-glacoma - bagg
+    #Closer look at the trees
+    table(sapply(trees, function(x) 
+      as.character(x$frame$var[1])))
+    
+    #Note the change in the choice of variables for the root node. 
+    
+    ## RP-glaucoma-splits
+    classprob <- matrix(0, nrow = n, ncol = length(trees))
+    for (i in 1:length(trees)) {
+      classprob[,i] <- predict(trees[[i]], 
+                               newdata = bhous)
+      classprob[bootsamples[,i] > 0,i] <- NA
+    }
+    
+    cat("\n50 Tree Bagging MSE: \n")
+    avg <- rowMeans(classprob, na.rm = TRUE)
+    fifty.mse = mean((bhous$medv - avg)^2)
+    fifty.mse
+    
+    plot(avg ~ medv, data = bhous, xlab = "Observed", 
+         ylab = "Predicted", ylim = xlim, xlim = xlim)
+    abline(a = 0, b = 1)
+    ```
+    
+    **The MSE from bagging 50 trees is 17.02426 with seed *333*.**
+    
+    c) Use randomForest() function in R to perform bagging. Report the prediction error (MSE). Was it the same as (b)? If they are different what do you think caused it?  Provide a plot of the predicted vs. observed values.
+    
+    ```{r, echo=FALSE}
+    library(randomForest)
+    set.seed(333)
+    rf = randomForest(medv ~ ., mtry = 13, data = bhous)
+    rf
+    rf.pred = predict(rf, newdata=bhous)
+    
+    cat("\nMSE from RandomForest() bagging: \n")
+    rfb.mse = mean((bhous$medv - rf.pred)^2)
+    rfb.mse
+    
+    plot(rf.pred ~ medv, data = bhous, xlab = "Observed", 
+         ylab = "Predicted", ylim = xlim, xlim = xlim)
+    abline(a = 0, b = 1)
+    ```
+    
+    **The random forest with *333* as the seed using all of the features (bagging by using *mtry = 13*) method provided a much lower MSE value than the 50 tree ensemble or the single tree (1.811 v 17.024 v 12.716). This is most likely due to the number of trees being created and used for predictions since the random forest function is creating 500 trees instead of 50 or just 1.**
+    
+    d) Use randomForest() function in R to perform random forest. Report the prediction error (MSE).  Provide a plot of the predicted vs. observed values.
+    
+    ```{r, echo=FALSE}
+    library(randomForest)
+    set.seed(333)
+    rf2 = randomForest(medv ~ ., data = bhous)
+    rf2
+    rf2.pred = predict(rf2, newdata=bhous)
+    
+    cat("\nMSE from RandomForest() bagging: \n")
+    rf2.mse = mean((bhous$medv - rf2.pred)^2)
+    rf2.mse
+    
+    plot(rf2.pred ~ medv, data = bhous, xlab = "Observed", 
+         ylab = "Predicted", ylim = xlim, xlim = xlim)
+    abline(a = 0, b = 1)
+    ```
+    
+    **By creating a random forest with *333* as the seed and not telling it how many of the features to used to create the trees, the MSE went up slightly from bagging (1.958 v 1.811). Looking at the predicted vs observed plot, there were some values in the middle that moved closer to the x=y line, but values on the high end of medv spread out slightly more than with bagging, which increased the MSE.**
+    
+    e) Provide a table containing each method and associated MSE. Which method is more accurate?
+    
+    ```{r, echo=FALSE}
+    tree.df = data.frame("Method" = c("Single Tree (un-pruned)",
+                                      "Single Tree (pruned)",
+                                      "50 Tree Ensemble",
+                                      "Bagging",
+                                      "Random Forest"),
+                         "Mean_Square_Error" = c(single.mse,
+                                                 prune.mse,
+                                                 fifty.mse,
+                                                 rfb.mse,
+                                                 rf2.mse))
+    print(tree.df)
+    ```
+    
+2. Consider the glacoma data (data = "\textbf{GlaucomaM}", package = "\textbf{TH.data}").
+
+    a) Build a logistic regression model. Note that most of the predictor variables are highly correlated. Hence, a logistic regression model using the whole set of variables will not work here as it is sensitive to correlation.
+        \begin{verbatim}
+        glac_glm <- glm(Class ~., data = GlaucomaM, family = "binomial")
+        #warning messages  -- variable selection needed 
+        \end{verbatim}
+
+        The solution is to select variables that seem to be important for predicting the response and using those in the modeling process using GLM. One way to do this is by looking at the relationship between the response variable and predictor variables using graphical or numerical summaries - this tends to be a tedious process. Secondly, we can use a formal variable selection approach. The $step()$ function will do this in R. Using the $step$ function, choose any direction for variable selection and fit logistic regression model. Discuss the model and error rate.
+        
+        \begin{verbatim}
+        #use of step() function in R
+        ?step
+        glm.step <- step(glac_glm)
+        \end{verbatim}
+        
+        
+        Do not print out the summaries of every single model built using variable selection. That will end up being dozens of pages long and not worth reading through. Your discussion needs to include the direction you chose. You may only report on the final model, the summary of that model, and the error rate associated with that model.
+    
+    ```{r, echo=FALSE}
+    set.seed(333)
+    
+    glau = GlaucomaM
+    
+    glau$Class = as.character(glau$Class)
+    
+    for(i in 1:length(glau$Class)){
+        if(glau$Class[i] == "normal"){
+            glau$Class[i] = 0
+        } else {
+            glau$Class[i] = 1
+        }
+    }
+    
+    glau$Class = as.factor(glau$Class)
+    
+    Class = glau$Class
+    feat = glau[,-c(length(glau))]
+    
+    cors = cor(feat)
+    cors[upper.tri(cors)] = 0
+    diag(cors) = 0
+    
+    glau1 = feat[,!apply(cors,2,function(x) any(x > abs(0.5)))]
+    glau1 = cbind(glau1, Class)
+    
+    glau.glm = glm(Class~., data=glau1, family="binomial")
+    glm.step = step(glau.glm, trace=F)
+    
+    summary(glm.step)
+    
+    glau.pred = predict(glm.step, glau, type="response")
+    glau.pred = ifelse(glau.pred >= 0.5, 1, 0)
+    glau.obs = ifelse(glau$Class == "glaucoma", 1, 0)
+    
+    cat("\nMSE from step glm: \n")
+    glmstep.mse = mean((glau.pred - glau.obs)^2)
+    glmstep.mse
+    
+    ```
+    
+    **The direction that I chose to go given that there are many metrics that correlate with each other is to remove those with a correlation greater than 0.5. The remaining features were than used in the step() function to determine the best combination. The final model created used *phct*, *phci*, *hvc*, *mr*, *rnf*, and *emd*. All features were significant at P<=0.01 besides *phct*. The AIC of the model is 168.13 which is better than the other model created within the step() function with AIC=169.92. This indicates the final model fits the response variable (glaucoma or normal) better than the first model. The mean squared error of this final model is 0.485, which seems relatively low but without other models to compare to is hard to tell whether this is good or poor.**
+    
+    b) Build a logistic regression model with K-fold cross validation (k = 10). Report the error rate.
+    
+    ```{r, echo=FALSE}
+    library(boot)
+    set.seed(333)
+    cost=function(r, pi=0)
+      mean(abs(r-pi)>0.5)
+    
+    cat("K-fold cross validation (K=10) error rate: \n")
+    glau.CV10 = cv.glm(glau, glau.glm, K=10, cost)$delta[1];glau.CV10
+    ```
+    
+    **The error from cross validation is 0.27 which is almost half of the using step for glm. This indicates that k-fold cross validation better predicts whether the patient has glaucoma or not."**
+    
+    c) Find a function (package in R) that can conduct the "adaboost" ensemble modeling. Use it to predict glaucoma and report error rate. Be sure to mention the package you used.
+    
+    ```{r, echo=FALSE}
+    library(adabag)
+    set.seed(333)
+    ind = sample(2, nrow(glau), replace = TRUE, prob = c(0.8, 0.2))
+    train.df = glau[ind == 1,]
+    test.df = glau[ind == 2,]
+    
+    glau.boost = boosting(glau.glm, train.df, control=rpart.control(minsplit=10))
+    glau.b.pred = predict.boosting(glau.boost, newdata=test.df)
+    boost.preds = as.numeric(glau.b.pred$class)
+    glau.test.obs = ifelse(test.df$Class == "1", 1, 0)
+    
+    glau.boostc = boosting(glau.glm, glau)
+    glau.b.predc = predict.boosting(glau.boostc, newdata=glau)
+    boost.predsc = as.numeric(glau.b.predc$class)
+    glau.test.obsc = ifelse(glau$Class == "1", 1, 0)
+    
+    cat("MSE from whole data boosting: \n")
+    boost.msec = mean((boost.predsc - glau.test.obsc)^2)
+    boost.msec
+    
+    cat("\nMSE from train boosting: \n")
+    boost.mse = mean((boost.preds - glau.test.obs)^2)
+    boost.mse
+    ```
+    
+    **Created a 80:20 train:test split because the model was perfectly fitting the data. With predicting if the patient has glaucoma the boosting model has an MSE of 0.195. This is better than both step glm and k-fold cross validation. I suspect this is due to the 100 trees that it uses to build the trees and it calculating the weight of each tree based on how well it performs. This is with using a control of *minsplit=10* as per the documentation for the *boosting* funciton.**
+    
+    d) Report the error rates based on single tree, bagging and random forest. (A table would be great for this).
+    
+    ```{r, echo=FALSE}
+    model.df = data.frame("Method" = c("Step GLM",
+                                      "K-Fold CV",
+                                      "Adaptive Boosting: Whole Data",
+                                      "Adaptive Boosting"),
+                         "Mean_Square_Error" = c(glmstep.mse,
+                                                 glau.CV10,
+                                                 boost.msec,
+                                                 boost.mse))
+    print(model.df)
+    ```
+    
+    e) Write a conclusion comparing the above results (use a table to report models and corresponding error rates). Which one is the best model?
+    
+    **Of the above models, the adaptive boosting performs the best both in whole data training and train/test split training. This is likely do to each of the trees being given a weight based on its performance and then all trees being used in an ensemble to predict the patients glaucoma status. Next best after boosting is the K-fold cross validation model which performs about 1.5x worse than the AdaBoost model. Finally, the worse model is the glm which is almost twice as bad as the K-fold CV model. The glm model is the simplest of the models trained, and this explains why its performace isn't the 'best'.**
+
+    f) From the above analysis, which variables seem to be important in predicting Glaucoma?
+    
+    ```{r, echo=FALSE}
+    message("Boosting Feature Importance:")
+    glau.boost$importance
+    ```
+    
+    **From the above analysis, the features that seem to be important are those included in creating the models; *phct*, *phci*, *hvc*, *mr*, *rnf*, and *emd*. The glm model gave the significance of the coefficients for each and *phct* wasn't significantly different from zero. The boosting function provides the importance of the features used in making the trees and *rnf* was the most important with *mv* being the least important.**
+
+*Resources Used*:
+
++ StackOverflow
++ datascienceplus.com
++ rdocumentation.org
