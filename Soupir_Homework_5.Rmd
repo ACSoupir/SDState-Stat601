@@ -12,19 +12,9 @@ output:
 knitr::opts_chunk$set(message=F,warning=F,echo=F,fig_height=10,fig_width=7,cache = F)
 ```
 
-*Packages*: vcd, lattice, randomForest, party, partykit, mboost, TH.data, ipred, rpart, randomForest, mlbench, tidyverse, boot, adabag
+*Packages*: vcd, lattice, randomForest, party, partykit, mboost, TH.data, ipred, rpart, randomForest, mlbench, tidyverse, boot, adabag, ggplot
 
 *Collaborators*:
-
-Answer all questions specified on the problem and include a discussion on how your results answered/addressed the question.
-
-Submit your \textbf{.rmd} file with the knitted \textbf{PDF} (or knitted Word Document saved as a PDF). If you are having trouble with .rmd, let us know and we will help you, but both the .rmd and the PDF are required.
-
-This file can be used as a skeleton document for your code/write up. Please follow the instructions found under Content for Formatting and Guidelines. No code should be in your PDF write-up unless stated otherwise.
-
-For any question asking for plots/graphs, please do as the question asks as well as do the same but using the respective commands in the GGPLOT2 library. (So if the question asks for one plot, your results should have two plots. One produced using the given R-function and one produced from the GGPLOT2 equivalent). This doesn't apply to questions that don't specifically ask for a plot, however I still would encourage you to produce both.
-
-You do not need to include the above statements.
 
 Please do the following problems from the text book R Handbook and stated.
 
@@ -64,6 +54,7 @@ cp = complexity parameter
     library(mlbench)
     library(tidyverse)
     
+    
     data(BostonHousing)
     bhous = BostonHousing
     
@@ -97,10 +88,20 @@ cp = complexity parameter
          ylab = "Predicted", main="Unpruned Tree", ylim = xlim, xlim = xlim)
     abline(a = 0, b = 1)
     
+    ggplot(bhous, aes(x=medv, y=medv_pred))+
+      geom_point(shape=1)+
+      geom_abline(slope=1, intercept=0)+
+      labs(title="Unpruned Tree", x="Observed", y="Predicted")
+    
     xlim = range(bhous$medv)
     plot(medv_pred2 ~ medv, data = bhous, xlab = "Observed", 
          ylab = "Predicted", main="Pruned Tree", ylim = xlim, xlim = xlim)
     abline(a = 0, b = 1)
+    
+    ggplot(bhous, aes(x=medv, y=medv_pred2))+
+      geom_point(shape=1)+
+      geom_abline(slope=1, intercept=0)+
+      labs(title="Pruned Tree", x="Observed", y="Predicted")
     
     ```
     
@@ -142,6 +143,11 @@ cp = complexity parameter
     plot(avg ~ medv, data = bhous, xlab = "Observed", 
          ylab = "Predicted", ylim = xlim, xlim = xlim)
     abline(a = 0, b = 1)
+    
+    ggplot(bhous, aes(x=medv, y=avg))+
+      geom_point(shape=1)+
+      geom_abline(slope=1, intercept=0)+
+      labs(title="50 Tree Ensemble", x="Observed", y="Predicted")
     ```
     
     **The MSE from bagging 50 trees is 17.02426 with seed *333*.**
@@ -151,40 +157,50 @@ cp = complexity parameter
     ```{r, echo=FALSE}
     library(randomForest)
     set.seed(333)
-    rf = randomForest(medv ~ ., mtry = 13, data = bhous)
+    rf = randomForest(medv ~ .,ntree=50, mtry = 13, data = bhous)
     rf
     rf.pred = predict(rf, newdata=bhous)
     
-    cat("\nMSE from RandomForest() bagging: \n")
+    cat("\nMSE from RandomForest() bagging with 50 trees: \n")
     rfb.mse = mean((bhous$medv - rf.pred)^2)
     rfb.mse
     
     plot(rf.pred ~ medv, data = bhous, xlab = "Observed", 
          ylab = "Predicted", ylim = xlim, xlim = xlim)
     abline(a = 0, b = 1)
+    
+    ggplot(bhous, aes(x=medv, y=rf.pred))+
+      geom_point(shape=1)+
+      geom_abline(slope=1, intercept=0)+
+      labs(title="RF Bagging - 50 Tree", x="Observed", y="Predicted")
     ```
     
-    **The random forest with *333* as the seed using all of the features (bagging by using *mtry = 13*) method provided a much lower MSE value than the 50 tree ensemble or the single tree (1.811 v 17.024 v 12.716). This is most likely due to the number of trees being created and used for predictions since the random forest function is creating 500 trees instead of 50 or just 1.**
+    **The random forest with *333* as the seed using all of the features (bagging by using *mtry = 13*) method provided a much lower MSE value than the 50 tree ensemble or the single tree (1.855 v 17.024 v 12.716). This is most likely due to the number of trees being created and used for predictions since the random forest function is creating 500 trees instead of 50 or just 1.**
     
     d) Use randomForest() function in R to perform random forest. Report the prediction error (MSE).  Provide a plot of the predicted vs. observed values.
     
     ```{r, echo=FALSE}
     library(randomForest)
     set.seed(333)
-    rf2 = randomForest(medv ~ ., data = bhous)
+    rf2 = randomForest(medv ~ ., ntree=50, data = bhous)
     rf2
     rf2.pred = predict(rf2, newdata=bhous)
     
-    cat("\nMSE from RandomForest() bagging: \n")
+    cat("\nMSE from RandomForest() with 50 trees: \n")
     rf2.mse = mean((bhous$medv - rf2.pred)^2)
     rf2.mse
     
     plot(rf2.pred ~ medv, data = bhous, xlab = "Observed", 
          ylab = "Predicted", ylim = xlim, xlim = xlim)
     abline(a = 0, b = 1)
+    
+    ggplot(bhous, aes(x=medv, y=rf2.pred))+
+      geom_point(shape=1)+
+      geom_abline(slope=1, intercept=0)+
+      labs(title="RF - 50 Tree", x="Observed", y="Predicted")
     ```
     
-    **By creating a random forest with *333* as the seed and not telling it how many of the features to used to create the trees, the MSE went up slightly from bagging (1.958 v 1.811). Looking at the predicted vs observed plot, there were some values in the middle that moved closer to the x=y line, but values on the high end of medv spread out slightly more than with bagging, which increased the MSE.**
+    **By creating a random forest with *333* as the seed and not telling it how many of the features to used to create the trees, the MSE went up slightly from bagging (2.047 v 1.855). Looking at the predicted vs observed plot, there were some values in the middle that moved closer to the x=y line, but values on the high end of medv spread out slightly more than with bagging, which increased the MSE.**
     
     e) Provide a table containing each method and associated MSE. Which method is more accurate?
     
@@ -192,7 +208,7 @@ cp = complexity parameter
     tree.df = data.frame("Method" = c("Single Tree (un-pruned)",
                                       "Single Tree (pruned)",
                                       "50 Tree Ensemble",
-                                      "Bagging",
+                                      "Random Forest Bagging",
                                       "Random Forest"),
                          "Mean_Square_Error" = c(single.mse,
                                                  prune.mse,
@@ -201,6 +217,8 @@ cp = complexity parameter
                                                  rf2.mse))
     print(tree.df)
     ```
+    
+    **The most accurate method was random forest bagging with an MSE of 1.855. This is far lower than the 50 tree ensemble which has an MSE of 17.024. I suspect the 50 tree ensemble is performing worse due to a few poor trees.**
     
 2. Consider the glacoma data (data = "\textbf{GlaucomaM}", package = "\textbf{TH.data}").
 
@@ -312,20 +330,81 @@ cp = complexity parameter
     d) Report the error rates based on single tree, bagging and random forest. (A table would be great for this).
     
     ```{r, echo=FALSE}
-    model.df = data.frame("Method" = c("Step GLM",
-                                      "K-Fold CV",
-                                      "Adaptive Boosting: Whole Data",
-                                      "Adaptive Boosting"),
-                         "Mean_Square_Error" = c(glmstep.mse,
-                                                 glau.CV10,
-                                                 boost.msec,
-                                                 boost.mse))
+    #single tree
+    set.seed(333)
+    glau1$Class = as.character(glau1$Class)
+    glau1$Class = as.numeric(glau1$Class)
+    
+    glau1_rpart = rpart(Class ~ ., data =glau1,
+                         control=rpart.control(minsplit=10))
+    
+    opt <- which.min(glau1_rpart$cptable[,"xerror"])
+    
+    cp = glau1_rpart$cptable[opt, "CP"]
+    glau1_prune = prune(glau1_rpart, cp = cp)
+    
+    class_pred <- predict(glau1_prune, newdata = glau1)
+    
+    single1.mse = mean((glau1$Class - class_pred)^2)
+    
+    xlim = range(glau1$Class)
+    
+    #bagging
+    set.seed(333)
+    class.trees <- vector(mode = "list", length = 50)
+    n <- nrow(glau1)
+    bootsamples <- rmultinom(length(class.trees), n, rep(1, n)/n)
+    mod <- rpart(Class ~ ., data = glau1, 
+                 control = rpart.control(minsplit=10))
+    for (i in 1:length(class.trees))
+      class.trees[[i]] <- update(mod, weights = bootsamples[,i])
+    
+    classprob <- matrix(0, nrow = n, ncol = length(class.trees))
+    for (i in 1:length(class.trees)) {
+      classprob[,i] <- predict(class.trees[[i]], 
+                               newdata = glau1)
+      classprob[bootsamples[,i] > 0,i] <- NA
+    }
+    
+    avg <- rowMeans(classprob, na.rm = TRUE)
+    fifty.mse2 = mean((glau1$Class - avg)^2)
+    
+    #RF bagging
+    set.seed(333)
+    rfc = randomForest(Class ~ ., mtry = 8, ntree=50, data = glau1)
+    
+    rfc.pred = predict(rfc, newdata=glau1)
+    
+    rfc.mse = mean((glau1$Class - rfc.pred)^2)
+    
+    
+    #RF
+    set.seed(333)
+    rfc2 = randomForest(Class ~ ., ntree=50, data = glau1)
+    
+    rfc.pred2 = predict(rfc2, newdata=glau1)
+    
+    rfc.mse2 = mean((glau1$Class - rfc.pred2)^2)
+    
+    
+    
+    
+    
+    
+    model.df = data.frame("Method" = c("Single Pruned Tree",
+                                      "Bagging-50",
+                                      "RF Bagging-50",
+                                      "RF-50"),
+                         "Mean_Square_Error" = c(single1.mse,
+                                                 fifty.mse2,
+                                                 rfc.mse,
+                                                 rfc.mse2))
     print(model.df)
     ```
     
     e) Write a conclusion comparing the above results (use a table to report models and corresponding error rates). Which one is the best model?
     
-    **Of the above models, the adaptive boosting performs the best both in whole data training and train/test split training. This is likely do to each of the trees being given a weight based on its performance and then all trees being used in an ensemble to predict the patients glaucoma status. Next best after boosting is the K-fold cross validation model which performs about 1.5x worse than the AdaBoost model. Finally, the worse model is the glm which is almost twice as bad as the K-fold CV model. The glm model is the simplest of the models trained, and this explains why its performace isn't the 'best'.**
+    **Of the results for a single tree, bagging with 50 trees, random forest bagging with 50 trees, and random forest with 50 trees, the random forest bagging has the lowest error rate with a mean squared error of 0.028. The bagging with 50 trees had the highest MSE with 0.147, which is higher than even the single pruned tree which had an MSE of 0.117. Not telling the random forest to pick from all 8 features in the non-correlated dataframe performed slightly worse according to the MSE than did the *randomForest()* bagging method.**
 
     f) From the above analysis, which variables seem to be important in predicting Glaucoma?
     

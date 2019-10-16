@@ -10,19 +10,9 @@ output:
 
 
 
-*Packages*: vcd, lattice, randomForest, party, partykit, mboost, TH.data, ipred, rpart, randomForest, mlbench, tidyverse, boot, adabag
+*Packages*: vcd, lattice, randomForest, party, partykit, mboost, TH.data, ipred, rpart, randomForest, mlbench, tidyverse, boot, adabag, ggplot
 
 *Collaborators*:
-
-Answer all questions specified on the problem and include a discussion on how your results answered/addressed the question.
-
-Submit your \textbf{.rmd} file with the knitted \textbf{PDF} (or knitted Word Document saved as a PDF). If you are having trouble with .rmd, let us know and we will help you, but both the .rmd and the PDF are required.
-
-This file can be used as a skeleton document for your code/write up. Please follow the instructions found under Content for Formatting and Guidelines. No code should be in your PDF write-up unless stated otherwise.
-
-For any question asking for plots/graphs, please do as the question asks as well as do the same but using the respective commands in the GGPLOT2 library. (So if the question asks for one plot, your results should have two plots. One produced using the given R-function and one produced from the GGPLOT2 equivalent). This doesn't apply to questions that don't specifically ask for a plot, however I still would encourage you to produce both.
-
-You do not need to include the above statements.
 
 Please do the following problems from the text book R Handbook and stated.
 
@@ -68,7 +58,7 @@ cp = complexity parameter
     ## [1] 12.71556
     ```
     
-    ![](Soupir_Homework_5_files/figure-latex/regression_tree-3.pdf)<!-- --> ![](Soupir_Homework_5_files/figure-latex/regression_tree-4.pdf)<!-- --> 
+    ![](Soupir_Homework_5_files/figure-latex/regression_tree-3.pdf)<!-- --> ![](Soupir_Homework_5_files/figure-latex/regression_tree-4.pdf)<!-- --> ![](Soupir_Homework_5_files/figure-latex/regression_tree-5.pdf)<!-- --> ![](Soupir_Homework_5_files/figure-latex/regression_tree-6.pdf)<!-- --> 
     
     **I created a base tree as well as a pruned tree after setting seed to *333*. Both trees are using all parameters from the data frame to build the tree. Both trees had 8 internal nodes and 8 terminal nodes and both had the same MSE of 12.71556. Looking at the predicted vs observed values, the variance increases as the medv increases.**
     
@@ -90,7 +80,7 @@ cp = complexity parameter
     ## [1] 17.02426
     ```
     
-    ![](Soupir_Homework_5_files/figure-latex/unnamed-chunk-1-1.pdf)<!-- --> 
+    ![](Soupir_Homework_5_files/figure-latex/unnamed-chunk-1-1.pdf)<!-- --> ![](Soupir_Homework_5_files/figure-latex/unnamed-chunk-1-2.pdf)<!-- --> 
     
     **The MSE from bagging 50 trees is 17.02426 with seed *333*.**
     
@@ -100,27 +90,27 @@ cp = complexity parameter
     ```
     ## 
     ## Call:
-    ##  randomForest(formula = medv ~ ., data = bhous, mtry = 13) 
+    ##  randomForest(formula = medv ~ ., data = bhous, ntree = 50, mtry = 13) 
     ##                Type of random forest: regression
-    ##                      Number of trees: 500
+    ##                      Number of trees: 50
     ## No. of variables tried at each split: 13
     ## 
-    ##           Mean of squared residuals: 10.40821
-    ##                     % Var explained: 87.67
+    ##           Mean of squared residuals: 11.0798
+    ##                     % Var explained: 86.88
     ```
     
     ```
     ## 
-    ## MSE from RandomForest() bagging:
+    ## MSE from RandomForest() bagging with 50 trees:
     ```
     
     ```
-    ## [1] 1.810938
+    ## [1] 1.855377
     ```
     
-    ![](Soupir_Homework_5_files/figure-latex/unnamed-chunk-2-1.pdf)<!-- --> 
+    ![](Soupir_Homework_5_files/figure-latex/unnamed-chunk-2-1.pdf)<!-- --> ![](Soupir_Homework_5_files/figure-latex/unnamed-chunk-2-2.pdf)<!-- --> 
     
-    **The random forest with *333* as the seed using all of the features (bagging by using *mtry = 13*) method provided a much lower MSE value than the 50 tree ensemble or the single tree (1.811 v 17.024 v 12.716). This is most likely due to the number of trees being created and used for predictions since the random forest function is creating 500 trees instead of 50 or just 1.**
+    **The random forest with *333* as the seed using all of the features (bagging by using *mtry = 13*) method provided a much lower MSE value than the 50 tree ensemble or the single tree (1.855 v 17.024 v 12.716). This is most likely due to the number of trees being created and used for predictions since the random forest function is creating 500 trees instead of 50 or just 1.**
     
     d) Use randomForest() function in R to perform random forest. Report the prediction error (MSE).  Provide a plot of the predicted vs. observed values.
     
@@ -128,27 +118,27 @@ cp = complexity parameter
     ```
     ## 
     ## Call:
-    ##  randomForest(formula = medv ~ ., data = bhous) 
+    ##  randomForest(formula = medv ~ ., data = bhous, ntree = 50) 
     ##                Type of random forest: regression
-    ##                      Number of trees: 500
+    ##                      Number of trees: 50
     ## No. of variables tried at each split: 4
     ## 
-    ##           Mean of squared residuals: 9.79886
-    ##                     % Var explained: 88.39
+    ##           Mean of squared residuals: 10.08879
+    ##                     % Var explained: 88.05
     ```
     
     ```
     ## 
-    ## MSE from RandomForest() bagging:
+    ## MSE from RandomForest() with 50 trees:
     ```
     
     ```
-    ## [1] 1.958057
+    ## [1] 2.047208
     ```
     
-    ![](Soupir_Homework_5_files/figure-latex/unnamed-chunk-3-1.pdf)<!-- --> 
+    ![](Soupir_Homework_5_files/figure-latex/unnamed-chunk-3-1.pdf)<!-- --> ![](Soupir_Homework_5_files/figure-latex/unnamed-chunk-3-2.pdf)<!-- --> 
     
-    **By creating a random forest with *333* as the seed and not telling it how many of the features to used to create the trees, the MSE went up slightly from bagging (1.958 v 1.811). Looking at the predicted vs observed plot, there were some values in the middle that moved closer to the x=y line, but values on the high end of medv spread out slightly more than with bagging, which increased the MSE.**
+    **By creating a random forest with *333* as the seed and not telling it how many of the features to used to create the trees, the MSE went up slightly from bagging (2.047 v 1.855). Looking at the predicted vs observed plot, there were some values in the middle that moved closer to the x=y line, but values on the high end of medv spread out slightly more than with bagging, which increased the MSE.**
     
     e) Provide a table containing each method and associated MSE. Which method is more accurate?
     
@@ -158,9 +148,11 @@ cp = complexity parameter
     ## 1 Single Tree (un-pruned)         12.715559
     ## 2    Single Tree (pruned)         12.715559
     ## 3        50 Tree Ensemble         17.024265
-    ## 4                 Bagging          1.810938
-    ## 5           Random Forest          1.958057
+    ## 4   Random Forest Bagging          1.855377
+    ## 5           Random Forest          2.047208
     ```
+    
+    **The most accurate method was random forest bagging with an MSE of 1.855. This is far lower than the 50 tree ensemble which has an MSE of 17.024. I suspect the 50 tree ensemble is performing worse due to a few poor trees.**
     
 2. Consider the glacoma data (data = "\textbf{GlaucomaM}", package = "\textbf{TH.data}").
 
@@ -263,16 +255,16 @@ cp = complexity parameter
     
     
     ```
-    ##                          Method Mean_Square_Error
-    ## 1                      Step GLM         0.4846939
-    ## 2                     K-Fold CV         0.2704082
-    ## 3 Adaptive Boosting: Whole Data         0.0000000
-    ## 4             Adaptive Boosting         0.1951220
+    ##               Method Mean_Square_Error
+    ## 1 Single Pruned Tree        0.11719914
+    ## 2         Bagging-50        0.14739100
+    ## 3      RF Bagging-50        0.02812455
+    ## 4              RF-50        0.03180633
     ```
     
     e) Write a conclusion comparing the above results (use a table to report models and corresponding error rates). Which one is the best model?
     
-    **Of the above models, the adaptive boosting performs the best both in whole data training and train/test split training. This is likely do to each of the trees being given a weight based on its performance and then all trees being used in an ensemble to predict the patients glaucoma status. Next best after boosting is the K-fold cross validation model which performs about 1.5x worse than the AdaBoost model. Finally, the worse model is the glm which is almost twice as bad as the K-fold CV model. The glm model is the simplest of the models trained, and this explains why its performace isn't the 'best'.**
+    **Of the results for a single tree, bagging with 50 trees, random forest bagging with 50 trees, and random forest with 50 trees, the random forest bagging has the lowest error rate with a mean squared error of 0.028. The bagging with 50 trees had the highest MSE with 0.147, which is higher than even the single pruned tree which had an MSE of 0.117. Not telling the random forest to pick from all 8 features in the non-correlated dataframe performed slightly worse according to the MSE than did the *randomForest()* bagging method.**
 
     f) From the above analysis, which variables seem to be important in predicting Glaucoma?
     
