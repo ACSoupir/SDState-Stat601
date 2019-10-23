@@ -1,0 +1,278 @@
+---
+title: "Homework 6"
+author: "Alex Soupir"
+date: "October 20, 2019"
+output:
+  pdf_document:
+    keep_md: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=F,warning=F,echo=F,fig_height=10,fig_width=7,cache = F)
+```
+
+*Packages*: HSAUR3, mgcv, GGally, mboost, rpart, wordcloud, ggplot2, TH.data, tidyverse, gamair
+
+*Collaborators*:
+
+Answer all questions specified on the problem and include a discussion on how your results answered/addressed the question.
+
+Submit your \textbf{.rmd} file with the knitted \textbf{PDF} (or knitted Word Document saved as a PDF). If you are having trouble with .rmd, let us know and we will help you, but both the .rmd and the PDF are required.
+
+This file can be used as a skeleton document for your code/write up. Please follow the instructions found under Content for Formatting and Guidelines. No code should be in your PDF write-up unless stated otherwise.
+
+For any question asking for plots/graphs, please do as the question asks as well as do the same but using the respective commands in the GGPLOT2 library. (So if the question asks for one plot, your results should have two plots. One produced using the given R-function and one produced from the GGPLOT2 equivalent). This doesn't apply to questions that don't specifically ask for a plot, however I still would encourage you to produce both.
+
+You do not need to include the above statements.
+
+Please do the following problems from the text book R Handbook and stated.
+
+1. Consider the body fat data introduced in Chapter 9 (\textbf{ bodyfat} data from \textbf{TH.data}  package).  
+
+    a) Explore the data graphically. What variables do you think need to be included for predicting bodyfat? (Hint: Are        there correlated predictors).
+    
+    ```{r, echo=FALSE}
+    library("HSAUR3")
+    library("mgcv")
+    library("GGally")
+    library("mboost")
+    library("rpart")
+    library("wordcloud")
+    library("ggplot2")
+    library("TH.data")
+    
+    set.seed(333)
+    data(bodyfat)
+    bdft = bodyfat
+    
+    pairs(bdft)
+    ggpairs(bdft, colour=2, alpha=0.4)
+    ```
+    
+    **As with last weeks assignment, there are a few variables that appear to be highly correlated to each other. The suggestion was to remove these.**
+    
+    ```{r, echo=FALSE}
+    set.seed(333)
+    library(tidyverse)
+    bdft = bodyfat
+    
+    DEXfat = bdft$DEXfat
+    ft = bdft[,!names(bdft) %in% "DEXfat"]
+    
+    correlations = cor(ft)
+    correlations[lower.tri(correlations)] = 0
+    diag(correlations) = 0
+    
+    bdft = ft[,!apply(correlations,2,function(x) any(x > abs(0.94)))]
+    bdft = cbind(bdft, DEXfat)
+    
+    features = colnames(bdft)
+    features
+    ```
+    
+    **Since we want to have both waistcirc, anthro3c, and hipcirc in part b, the threshold for correlation elimination was set to 0.94 to remove those that are highly correlated while maintaining these 3 features (anthro3c has a correlation of 0.933 with anthro3b, I believe, so I set the threshold slightly higher). The variables that I think need to be included for predicting bodyfat given the above is *age*, *waistcirc*, *hipcirc*, *elbowbreadth*, *kneebreadth*, *anthro3a*, and *DEXfat*. This means that Antro**
+    
+    b) Fit a generalised additive model assuming normal errors using the following code. 
+
+       \begin{verbatim}
+         bodyfat_gam <- gam(DEXfat~ s(age) + s(waistcirc) + s(hipcirc) + 
+                  s(elbowbreadth) + s(kneebreadth)+ s(anthro3a) +
+                  s(anthro3c), data = bodyfat)
+       \end{verbatim}
+      
+        - Assess the \textbf{summary()} and \textbf{plot()} of the model (don't need GGPLOT). Are all covariates informative? Should all covariates be smoothed or should some be included as a linear effect? 
+        
+        - Report GCV, AIC, adj-R$^2$, and total model degrees of freedom. 
+        
+        - Use \textbf{gam.check()} function to look at the diagnostic plot. Does it appear that the normality assumption is violated? 
+        
+        - Write a discussion on all of the above points.
+        
+    ```{r, echo=FALSE}
+    set.seed(333)
+    bodyfat_gam = gam(DEXfat ~ s(age) + s(waistcirc) + s(hipcirc) + s(elbowbreadth) + s(kneebreadth) + s(anthro3a) + s(anthro3c), data = bdft)
+    summary(bodyfat_gam)
+    
+    par(mfrow=c(2,4))
+    plot(bodyfat_gam, select = 1)
+    plot(bodyfat_gam, select = 2)
+    plot(bodyfat_gam, select = 3)
+    plot(bodyfat_gam, select = 4)
+    plot(bodyfat_gam, select = 5)
+    plot(bodyfat_gam, select = 6)
+    plot(bodyfat_gam, select = 7)
+    
+    cat("\nModel AIC: \n")
+    bdft_aic = AIC(bodyfat_gam)
+    bdft_aic
+    
+    cat("Estimated Degrees of Freedom: \n")
+    sum(influence(bodyfat_gam))
+    
+    par(mfrow=c(2,2))
+    gam.check(bodyfat_gam)
+    
+    gam1 = c(8.44, 345.71, 0.95, 22.57)
+    ```
+    
+    **GCV = 8.44, AIC = 345.71, adj-R$^2$ = 0.95, model degrees of freedom = 22.57 (including 1 df for intercept as per stackexchange, or 21.57 not including 1 for the intercept).Variables *age*, *elbowbreadth*, and *anthro3c* are not significant at p = 0.05. Variables *age*, *waistcirc*, *elbowbreadth*, and *anthro3a* have an estimated degrees of freedom of 1 while *kneebreadth* has an edf of 8.754. Comparing these values to the plot, the higher the degrees of freedom the less linear the smoothed {s()} variable is, so *age*, *waistcirc*, *elbowbreadth*, and *anthro3a* could be included as a linear effect. The models generalized cross-validation score (GCV) is 8.44 and AIC is 345.71 on 22.57 degrees of freedom. The GCV and AIC most likely could be improved through feature selection than smoothing those features in the generalized additive model. **
+    
+    c) Now remove insignificant variables and remove smoothing for some variables. Report the summary, plot, GCV, AIC,         adj-R$^2$.
+      
+      \begin{verbatim}
+        bodyfat_gam2 <- gam(DEXfat~ waistcirc + s(hipcirc) + 
+                     s(kneebreadth)+ anthro3a +
+                     s(anthro3c), data = bodyfat)
+      \end{verbatim}
+    
+    ```{r, echo=FALSE}
+    set.seed(333)
+    cat("Given Model: \n")
+    bodyfat_gam2 <- gam(DEXfat~ waistcirc + s(hipcirc) + s(kneebreadth)+ anthro3a + s(anthro3c), data = bdft)
+    summary(bodyfat_gam2)
+    
+    par(mfrow=c(1,3))
+    plot(bodyfat_gam2, select = 1)
+    plot(bodyfat_gam2, select = 2)
+    plot(bodyfat_gam2, select = 3)
+    
+    cat("\nGiven Model AIC: \n")
+    bdft2_aic = AIC(bodyfat_gam2)
+    bdft2_aic
+    
+    cat("Estimated Degrees of Freedom: \n")
+    sum(influence(bodyfat_gam2))
+    
+    gam2 = c(7.95, 343.26, 0.95, 20.52)
+    ```
+    
+    **GCV = 7.95, AIC = 343.26, adj-R$^2$ = 0.95. All variable terms were significant at p = 0.05 and the intercept was significant at p = 0.1 level. The generalized cross-validation score was better than that of the previous model at 7.95 instead of 8.44. The AIC of the model with only including the significant variables from the previous model decreased slightly which indicates that the new model performs better. However, the adj-R$^2$ increased by 0.001**
+    
+    ```{r, echo=FALSE, eval=FALSE}
+    
+    cat("\nMy model: \n")
+    bodyfat_gam_mine = gam(DEXfat ~ waistcirc + s(hipcirc) + s(kneebreadth) + s(anthro3a), data = bdft)
+    summary(bodyfat_gam_mine)
+    
+    par(mfrow=c(1,3))
+    plot(bodyfat_gam_mine, select = 1)
+    plot(bodyfat_gam_mine, select = 2)
+    plot(bodyfat_gam_mine, select = 3)
+    
+    cat("My Model AIC: \n")
+    mmbdft_aic = AIC(bodyfat_gam_mine)
+    mmbdft_aic
+    ```
+    
+    d) Again fit an additive model to the body fat data, but this time for a log-transformed response. Compare the three        models, which one is more appropriate? (Hint: use Adj-R$^2$, residual plots, etc. to compare models).
+    
+    ```{r, echo=FALSE}
+    set.seed(333)
+    bodyfat_gam3 = gam(log(DEXfat) ~ waistcirc + s(hipcirc) + s(kneebreadth)+ anthro3a + s(anthro3c), data = bdft)
+    summary(bodyfat_gam3)
+    
+    par(mfrow=c(1,3))
+    plot(bodyfat_gam3, select = 1)
+    plot(bodyfat_gam3, select = 2)
+    plot(bodyfat_gam3, select = 3)
+    
+    cat("\nLog transformed response model AIC: \n")
+    bdft3_aic = AIC(bodyfat_gam3)
+    bdft3_aic
+    
+    cat("Estimated Degrees of Freedom: \n")
+    sum(influence(bodyfat_gam3))
+    
+    gam3 = c(0.009, -136.47, 0.95, 15.59)
+    
+    cat("\nPart B Model: \n")
+    par(mfrow=c(2,2))
+    gam.check(bodyfat_gam)
+    cat("\nPart C Model: \n")
+    par(mfrow=c(2,2))
+    gam.check(bodyfat_gam2)
+    cat("\nPart D Model: \n")
+    par(mfrow=c(2,2))
+    gam.check(bodyfat_gam3)
+    
+    modeltable = data.frame("Part B Model" = gam1,
+                            "Signif Variables" = gam2,
+                            "Log Response Model" = gam3)
+    modeltable
+    ```
+    
+    **The log transformed response variable decreases the generalized cross-validation score and the AIC of the model. The log transformation of the response variable produces a GCV of 0.009 AIC of -136.5 with an estimated 15.6 degrees of freedom. The smoothing of the kneebreadth variable isn't significant at p=0.05 now too.**
+    
+    e) Fit a generalised additive model that underwent AIC-based variable selection (fitted using function \textbf{             gamboost()} function). What variable was removed by using AIC? 
+      \begin{verbatim}
+       bodyfat_boost <- gamboost(DEXfat~., data = bodyfat)
+       bodyfat_aic <- AIC(bodyfat_boost)
+       bf_gam <- bodyfat_boost[mstop(bodyfat_aic)]
+      \end{verbatim}
+    
+    ```{r, echo=FALSE}
+    set.seed(333)
+    bodyfat_boost = gamboost(DEXfat ~., data=bodyfat)
+    bodyfat_aic = AIC(bodyfat_boost)
+    bf_gam = bodyfat_boost[mstop(bodyfat_aic)]
+    
+    summary(bodyfat_boost)
+    ```
+    
+    **The variables that were used through the selection are *waistcirc*, *hipcirc*, *elbowbreadth*, *kneebreadth*, *anthro3a*, *anthro3b*, *anthro3c*, and *anthro4*. This shows that the variable that was eliminated using AIC was the age variable.**
+    
+2. Fit a logistic additive model to the glaucoma data. (Here use family = "binomial"). Which covariates should enter the model and how is their influence on the probability of suffering from glaucoma? (Hint: since there are many covariates, use \textbf{gamboost()} to fit the GAM model.)
+
+```{r, echo=FALSE}
+set.seed(333)
+glau = GlaucomaM
+glau_boost = gamboost(Class~., data=glau, family=Binomial())
+summary(glau_boost)
+
+preds = predict(glau_boost,type="response")
+obs = ifelse(glau$Class == "normal",1,0)
+preds2 = ifelse(preds > 0.5, 1 ,0)
+
+cat("\nMeans Squared Error of Predictions on Glaucoma DF using Boost Model: \n")
+mean((preds2 - obs)^2)
+```
+
+**The variable selected using *gamboost()* are *tmi*, *mhcg*, *vars*, *mhci*, *hvc*, *vass*, *as*, *vari*, *mv*, *abrs*, *mhcn*, *phcn*, *mdn*, *phci*, *hic*, *phcg*, *mdi*, and *tms*. Using these variables, the error of the model is lower than that of the all models created last week for the glaucoma data set except the adaptive boosting on the whole data which perfectly fit the model. A train test split of 80/20 resulted in an error (MSE was the same value as the error) of 0.195, whereas gam boosting on the data produced an MSE of 0.10. This means that the variables are better able to predict whether a patient has glaucoma or not than k-fold cross validation (k-10, MSE=0.27) and glm (MSE=0.48.**
+
+3. Investigate the use of different types of scatterplot smoothers on the Hubble data from Chapter 6. (Hint: follow the example on men1500m data scattersmoothers page 199 of Handbook).
+
+```{r, echo=FALSE}
+library(gamair)
+data(hubble)
+hub=hubble
+hub = hub[order(hub$x),]
+x = hub$x
+y = hub$y
+hub_lowess = lowess(x,y)
+plot(y ~ x, data=hub, xlab="Distance (Mega parsecs)", ylab="Relative Velocity (km/s)", main="Scatter Plot with Lowess Smoothing Function")
+lines(hub_lowess)
+x = hub$x
+y = hub$y
+hub_cubic = gam(y~s(x, bs="cr"))
+plot(y ~ x, data=hub, xlab="Distance (Mega parsecs)", ylab="Relative Velocity (km/s)", main="Scatter Plot with Cubic Smoothing function")
+lines(x,predict(hub_cubic))
+hub_lm = lm(y~x,data=hub)
+plot(y ~ x, data=hub, xlab="Distance (Mega parsecs)", ylab="Relative Velocity (km/s)", main="Scatter Plot with Simple Linear Regression")
+abline(hub_lm)
+hub_quad = lm(y~x+I(x^2), data=hub)
+hub_quad_preds = predict(hub_quad)
+plot(y ~ x, data=hub, xlab="Distance (Mega parsecs)", ylab="Relative Velocity (km/s)", main="Scatter Plot with Quadratic Model")
+lines(hubble$x[order(hubble$x)],hub_quad_preds[order(hub_quad_preds)])
+```
+
+**The cubic model
+
+*Resources Used*:
+
++ stat.ethz.ch
++ rdocumentation.org
++ stackexchange.com
++ Homework 5
+
+
