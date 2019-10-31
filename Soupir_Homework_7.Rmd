@@ -1,0 +1,187 @@
+---
+title: "Homework 7"
+author: "Alex Soupir"
+date: "October 30, 2019"
+output:
+  pdf_document:
+    keep_md: true
+    df_print: paged
+---
+
+*Packages*: HSAUR3, ISwR, survival, coin, party
+
+*Collaborators*: 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=F,warning=F,echo=F,fig_height=10,fig_width=7,cache = F)
+```
+
+Please do the following problems from the text book R Handbook and stated.
+
+<!--
+something will live at least this long, but can't say exactly how long
+
+survival needs a survival indicator (==1)
+-->
+
+1. An investigator collected data on survival of patients with lung cancer at Mayo Clinic. The investigator would like you, the statistician, to answer the following questions and provide some graphs. Use the \textbf{cancer} data located in the \textbf{survival} package.
+
+    a. What is the probability that someone will survive past 300 days?
+    
+    ```{r, echo=FALSE}
+    set.seed(333)
+    library("survival")
+    library(ISwR)
+    library(HSAUR3)
+    library("coin")
+    library("party")
+    
+    data(cancer)
+    head(cancer)
+    cat("\n")
+    
+    model1a = survfit(Surv(time, status == 2)~1, data = cancer, conf.int=0.95, conf.type="plain")
+    summary(model1a, times = 300)
+    ```
+    
+    **Dead patients were given a status of 2, so the status in *Surv* has to be == 2. The probability thta someone will live past 300 days is 0.531.**
+    
+    b. Provide a graph, including 95% confidence limits, of the Kaplan-Meier estimate of the entire study.
+    
+    ```{r, echo=FALSE}
+    set.seed(333)
+    plot(model1a, main="Kaplan-Meier Estimate of Lung Cancer Data", ylab="Survival Probability", xlab="Survival Time (days)")
+    legend("bottomleft", c("Survival", "95% CI"), lty = c(1, 2), col = c(1,1))
+    ```
+    
+    c. Is there a difference in the survival rates between males and females? Provide a formal statistical test with a p-value and visual evidence.
+    
+    ```{r, echo=FALSE}
+    set.seed(333)
+    
+    layout(matrix(1:1, ncol = 1))
+    model1c = survfit(Surv(time, status == 2) ~ sex, data = cancer, conf.int=0.95, conf.type="plain")
+    plot(model1c, main="Survival of Males and Females with Lung Cancer", xlab="Survival Time (days)", ylab="Survival Probability", lty=c(1,2), col=c(1,2))
+    legend("bottomleft",c("Males", "Females"), lty=c(1,2), col=c(1,2))
+    
+    layout(matrix(1:2, ncol = 2))
+    m1c = subset(cancer, sex ==1)
+    m1c.mod = survfit(Surv(time, status == 2) ~ 1, data = m1c, conf.int=0.95, conf.type="plain")
+    cat("\nProbability of a male living past 300 and 750 days: \n")
+    summary(m1c.mod, times = c(300, 750))
+    plot(m1c.mod, main="Survival of Males with\n Lung Cancer", xlab="Survival Time (days)", ylab="Survival Probability")
+    legend("topright", c("Survival", "95% CI"), lty = c(1, 2), col = c(1,1))
+    
+    f1c = subset(cancer, sex == 2)
+    f1c.mod = survfit(Surv(time, status == 2) ~ 1, data = f1c, conf.int=0.95, conf.type="plain")
+    cat("\nProbability of a female living past 300 and 750 days: \n")
+    summary(f1c.mod, times = c(300, 750))
+    plot(f1c.mod, main="Survival of Females with\n Lung Cancer", xlab="Survival Time (days)", ylab="Survival Probability")
+    legend("topright", c("Survival", "95% CI"), lty = c(1, 2), col = c(1,1))
+    
+    cat("\nChisq test between males and females: \n")
+    survdiff(Surv(time, status == 2) ~ sex, data = cancer)
+    
+    
+    ```
+    
+    **First a survival plot was created for males and females; females appear to have a slightly higher probability of survival until around 750 days. Next, the probability of surviving past 300 days and 750 days. Males probability of surviving past 300 days is 0.4411 whereas females surviving past 300 days is 0.674. Surviving past 750 days was closer between males and females with a probability of 0.0781 and 0.125, respectively. These values don't have any statistical significance associated using *summary()* so a statistical test is needed which can be done with *survdiff()*. This computes a chisq of males vs females survival rates, which resulted in a p-value of 0.001, indicating that there is a difference in survival between the genders.**
+    
+    d. Is there a difference in the survival rates for the older half of the group versus the younger half? Provide a formal statistical test with a p-value and visual evidence.
+    
+    ```{r, echo=FALSE}
+    set.seed(333)
+    cat("Finding median age of cancer patients: \n")
+    median(cancer$age)
+    cancer$agecat = ifelse(cancer$age > 63, ">63", "<63")
+    layout(matrix(1:1, ncol=1))
+    model1d = survfit(Surv(time, status ==2) ~ agecat, data = cancer, conf.int=0.95, conf.type="plain")
+    plot(model1d, main="Survival of Older and Younger Patients with Lung Cancer (63yo)", xlab="survival Time (days)", ylab="Survival Probability", lty=c(1,2), col=c(1,2))
+    legend("bottomleft", c("< 63 yo", "> 63 yo"), lty=c(1,2), col=c(1,2))
+    
+    layout(matrix(1:2, ncol = 2))
+    l1d = subset(cancer, agecat == "<63")
+    l1d.mod = survfit(Surv(time, status == 2) ~ 1, data = l1d, conf.int=0.95, conf.type="plain")
+    cat("\nProbability of younger than 63 living past 300 and 750 days: \n")
+    summary(l1d.mod, times = c(300, 750))
+    plot(l1d.mod, main="Survival of Patients Younger\n than 63", xlab="Survival Time (days)", ylab="Survival Probability")
+    legend("topright", c("Survival", "95% CI"), lty = c(1, 2), col = c(1,1))
+    
+    g1d = subset(cancer, agecat == ">63")
+    g1d.mod = survfit(Surv(time, status == 2) ~ 1, data = g1d, conf.int=0.95, conf.type="plain")
+    cat("\nProbability of those older than 63 living past 300 and 750 days: \n")
+    summary(g1d.mod, times = c(300, 750))
+    plot(g1d.mod, main="Survival of Patients Older\n than 63", xlab="Survival Time (days)", ylab="Survival Probability")
+    legend("topright", c("Survival", "95% CI"), lty = c(1, 2), col = c(1,1))
+    
+    cat("\nChisq test between males and females: \n")
+    survdiff(Surv(time, status == 2) ~ agecat, data = cancer)
+    ```
+    
+    **Similarly to *Part C* a plot was created first to compare the 2 groups. A new column was created to distinguish between the oldest half of patients and the youngest half of patients. The median age was found to be 63 and that value was used as the split age for oldest and youngest. The first plot showing the 2 different groups shows that the 2 groups don't deviate too much from each other. The survival rates for the 2 groups was found using *survfit()* for times of 300 and 750 days. Patients younger than 63 years old have a probability of surviving past 300 days of 0.551 and patients older than 63 have a probability of 0.509 of surviving past 300 days. For 750 days, the survival probability of patients younger and older than 63 years of age is 0.133 and 0.066, respectively. To determine significance between the 2 age groups, *survdiff()* was used to compute a chi-squared p-value of 0.2, which means that there isn't a significant difference in survival rates between the older half and the younger half of lung cancer patients.**
+
+2. A healthcare group has asked you to analyse the \textbf{mastectomy} data from the \textbf{HSAUR3} package, which is the survival times (in months) after a mastectomy of women with breast cancer. The cancers are classified as having metastasized or not based on a histochemical marker. The healthcare group requests that your report should not be longer than one page, and must only consist of one plot, one table, and one paragraph. Do the following:
+
+    a. Plot the survivor functions of each group only using GGPlot, estimated using the Kaplan-Meier estimate.
+
+    b. Use a log-rank test to compare the survival experience of each group more formally. Only present a formal table of your results. 
+
+    c. Write one paragraph summarizing your findings and conclusions. 
+    
+    ```{r, echo=FALSE, fig.height=5, fig.width=5}
+    set.seed(333)
+    data(mastectomy)
+    #?mastectomy
+    head(mastectomy)
+    
+    library(survminer)
+    model2a = survfit(Surv(time, event == TRUE) ~ metastasized, data=mastectomy)
+    ggsurv = ggsurvplot(model2a,
+               data=mastectomy,
+               risk.table=TRUE,
+               pval=0.0615,
+               conf.int=TRUE,
+               xlab="Survival Time (months)",
+               risk.table.y.text.col = T,
+               risk.table.y.text = FALSE,
+               legend.labs=c("Non-metastasized", "Metastasized")
+               )
+    ggsurv$plot = ggsurv$plot + labs(
+      title="Survival Curves",
+      subtitle="Based on Kaplan-Meier estimates"
+    )
+    
+    ggsurv <- ggpar(
+      ggsurv,
+      font.title    = c(12, "bold", "black"),         
+      font.subtitle = c(11, "bold.italic", "black"),     
+      font.x        = c(10, "bold.italic", "black"),          
+      font.y        = c(10, "bold.italic", "black"),      
+      font.xtickslab = c(10, "plain", "black"),
+      legend = "top"
+    )
+    
+    ggsurv
+    ```
+    
+    ```{r, echo=FALSE, eval=FALSE}
+    ranktest = logrank_test(Surv(time, event == TRUE) ~ metastasized, data = mastectomy, distribution = "exact")
+    ranktest
+    ```
+    
+    ```{r, echo=FALSE}
+    survtab = data.frame("Formula" = "Surv(time, event == TRUE) by metastasized",
+                         "Z-value" = 1.8667,
+                         "P-value" = 0.06146)
+    cat("Log-Rank Test Results: \n")
+    print(survtab)
+    ```
+    
+    **A plot was created using a GGPlot wrapper (*survminer*) for the survival of patients with and without metastasized breast cancer and plotted with the 95% confidence interval. A risk table was also given from GGPlot showing the number at risk for each given time point (x50 weeks). The non-metastatic breast cancer patients appear to have a higher survival probability throughout the time course, however, the confidence intervals of the 2 groups overlap. In order to draw a definitive conslusion on whether patients with non-metastatic cancer have similar survival rates as patients with metastatic cancer, a Log-Rank test was conducted. The Log-Rank test compares the entire survival curve between the groups and tells us whether the curves are identical or not. The p-value of the Log-Rank test is 0.0615, letting us know that the curve for metastatic and non-metastatic patiets do not have statistically different survival rates across 225 weeks.**
+
+*Resources Used*:
+
++ rdocumentation.org
++ stackexchange.com
++ rpkgs.datanovia.com/survminer
++ sphweb.bumc.bu.edu (Boston University)
