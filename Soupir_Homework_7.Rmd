@@ -8,7 +8,7 @@ output:
     df_print: paged
 ---
 
-*Packages*: HSAUR3, ISwR, survival, coin, party
+*Packages*: HSAUR3, ISwR, survival, coin, party, survminer
 
 *Collaborators*: 
 
@@ -35,6 +35,7 @@ survival needs a survival indicator (==1)
     library(HSAUR3)
     library("coin")
     library("party")
+    library(survminer)
     
     data(cancer)
     head(cancer)
@@ -52,6 +53,26 @@ survival needs a survival indicator (==1)
     set.seed(333)
     plot(model1a, main="Kaplan-Meier Estimate of Lung Cancer Data", ylab="Survival Probability", xlab="Survival Time (days)")
     legend("bottomleft", c("Survival", "95% CI"), lty = c(1, 2), col = c(1,1))
+    
+    plot1a = ggsurvplot(
+      model1a,
+      data = cancer,
+      size=1,
+      conf.int=TRUE,
+      ggtheme=theme_bw(),
+      xlab="Survival Time (days)",
+      legend.labs = "Survival"
+    ) + labs(
+      title="Kaplan-Meier Estimate of Lung Cancer Data"
+    )
+    
+    plot1a = ggpar(
+      plot1a, font.title = c(12, "bold", "black"),
+      font.x = c(10, "bold","black"),
+      font.y = c(10, "bold","black"),
+      legend = "top"
+    )
+    plot1a
     ```
     
     c. Is there a difference in the survival rates between males and females? Provide a formal statistical test with a p-value and visual evidence.
@@ -64,6 +85,28 @@ survival needs a survival indicator (==1)
     plot(model1c, main="Survival of Males and Females with Lung Cancer", xlab="Survival Time (days)", ylab="Survival Probability", lty=c(1,2), col=c(1,2))
     legend("bottomleft",c("Males", "Females"), lty=c(1,2), col=c(1,2))
     
+    plot1c = ggsurvplot(
+      model1c,
+      data = cancer,
+      size=1,
+      conf.int=TRUE,
+      ggtheme=theme_bw(),
+      xlab="Survival Time (days)",
+      legend.labs = c("Males","Females")
+    ) + labs(
+      title="Kaplan-Meier Estimate of Males and Females with Lung Cancer"
+    )
+    
+    plot1c = ggpar(
+      plot1c, font.title = c(12, "bold", "black"),
+      font.x = c(10, "bold","black"),
+      font.y = c(10, "bold","black"),
+      legend = "top"
+    )
+    plot1c
+    
+    #By Sex
+    #males
     layout(matrix(1:2, ncol = 2))
     m1c = subset(cancer, sex ==1)
     m1c.mod = survfit(Surv(time, status == 2) ~ 1, data = m1c, conf.int=0.95, conf.type="plain")
@@ -72,12 +115,54 @@ survival needs a survival indicator (==1)
     plot(m1c.mod, main="Survival of Males with\n Lung Cancer", xlab="Survival Time (days)", ylab="Survival Probability")
     legend("topright", c("Survival", "95% CI"), lty = c(1, 2), col = c(1,1))
     
+    plotm1c = ggsurvplot(
+      m1c.mod,
+      data = m1c,
+      size=1,
+      conf.int=TRUE,
+      ggtheme=theme_bw(),
+      xlab="Survival Time (days)",
+      legend.labs = c("Males")
+    ) + labs(
+      title="Kaplan-Meier Estimate of Males with Lung Cancer"
+    )
+    
+    plotm1c = ggpar(
+      plotm1c, font.title = c(12, "bold", "black"),
+      font.x = c(10, "bold","black"),
+      font.y = c(10, "bold","black"),
+      legend = "top"
+    )
+    
+    #females
     f1c = subset(cancer, sex == 2)
     f1c.mod = survfit(Surv(time, status == 2) ~ 1, data = f1c, conf.int=0.95, conf.type="plain")
     cat("\nProbability of a female living past 300 and 750 days: \n")
     summary(f1c.mod, times = c(300, 750))
     plot(f1c.mod, main="Survival of Females with\n Lung Cancer", xlab="Survival Time (days)", ylab="Survival Probability")
     legend("topright", c("Survival", "95% CI"), lty = c(1, 2), col = c(1,1))
+    
+    plotf1c = ggsurvplot(
+      f1c.mod,
+      data = f1c,
+      size=1,
+      conf.int=TRUE,
+      ggtheme=theme_bw(),
+      xlab="Survival Time (days)",
+      legend.labs = c("Females")
+    ) + labs(
+      title="Kaplan-Meier Estimate of Females with Lung Cancer"
+    )
+    
+    plotf1c = ggpar(
+      plotf1c, font.title = c(12, "bold", "black"),
+      font.x = c(10, "bold","black"),
+      font.y = c(10, "bold","black"),
+      legend = "top"
+    )
+    
+    plotm1c
+    plotf1c
     
     cat("\nChisq test between males and females: \n")
     survdiff(Surv(time, status == 2) ~ sex, data = cancer)
@@ -99,6 +184,26 @@ survival needs a survival indicator (==1)
     plot(model1d, main="Survival of Older and Younger Patients with Lung Cancer (63yo)", xlab="survival Time (days)", ylab="Survival Probability", lty=c(1,2), col=c(1,2))
     legend("bottomleft", c("< 63 yo", "> 63 yo"), lty=c(1,2), col=c(1,2))
     
+    plot1d = ggsurvplot(
+      model1d,
+      data = cancer,
+      size=1,
+      conf.int=TRUE,
+      ggtheme=theme_bw(),
+      xlab="Survival Time (days)",
+      legend.labs = c("< 63","> 63")
+    ) + labs(
+      title="Kaplan-Meier Estimate of Males and Females with Lung Cancer"
+    )
+    
+    plot1d = ggpar(
+      plot1d, font.title = c(12, "bold", "black"),
+      font.x = c(10, "bold","black"),
+      font.y = c(10, "bold","black"),
+      legend = "top"
+    )
+    plot1d
+    
     layout(matrix(1:2, ncol = 2))
     l1d = subset(cancer, agecat == "<63")
     l1d.mod = survfit(Surv(time, status == 2) ~ 1, data = l1d, conf.int=0.95, conf.type="plain")
@@ -107,6 +212,25 @@ survival needs a survival indicator (==1)
     plot(l1d.mod, main="Survival of Patients Younger\n than 63", xlab="Survival Time (days)", ylab="Survival Probability")
     legend("topright", c("Survival", "95% CI"), lty = c(1, 2), col = c(1,1))
     
+    plotl1d = ggsurvplot(
+      l1d.mod,
+      data = l1d,
+      size=1,
+      conf.int=TRUE,
+      ggtheme=theme_bw(),
+      xlab="Survival Time (days)",
+      legend.labs = c("< 63")
+    ) + labs(
+      title="Kaplan-Meier Estimate of Patients Younger than 63 Years Old with Lung Cancer"
+    )
+    
+    plotl1d = ggpar(
+      plotl1d, font.title = c(12, "bold", "black"),
+      font.x = c(10, "bold","black"),
+      font.y = c(10, "bold","black"),
+      legend = "top"
+    )
+    
     g1d = subset(cancer, agecat == ">63")
     g1d.mod = survfit(Surv(time, status == 2) ~ 1, data = g1d, conf.int=0.95, conf.type="plain")
     cat("\nProbability of those older than 63 living past 300 and 750 days: \n")
@@ -114,7 +238,29 @@ survival needs a survival indicator (==1)
     plot(g1d.mod, main="Survival of Patients Older\n than 63", xlab="Survival Time (days)", ylab="Survival Probability")
     legend("topright", c("Survival", "95% CI"), lty = c(1, 2), col = c(1,1))
     
-    cat("\nChisq test between males and females: \n")
+    plotg1d = ggsurvplot(
+      g1d.mod,
+      data = g1d,
+      size=1,
+      conf.int=TRUE,
+      ggtheme=theme_bw(),
+      xlab="Survival Time (days)",
+      legend.labs = c("> 63")
+    ) + labs(
+      title="Kaplan-Meier Estimate of Patients Older than 63 Years Old with Lung Cancer"
+    )
+    
+    plotg1d = ggpar(
+      plotg1d, font.title = c(12, "bold", "black"),
+      font.x = c(10, "bold","black"),
+      font.y = c(10, "bold","black"),
+      legend = "top"
+    )
+    
+    plotl1d
+    plotg1d
+    
+    cat("\nChisq test between younger and older: \n")
     survdiff(Surv(time, status == 2) ~ agecat, data = cancer)
     ```
     
@@ -134,7 +280,6 @@ survival needs a survival indicator (==1)
     #?mastectomy
     head(mastectomy)
     
-    library(survminer)
     model2a = survfit(Surv(time, event == TRUE) ~ metastasized, data=mastectomy)
     ggsurv = ggsurvplot(model2a,
                data=mastectomy,

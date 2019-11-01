@@ -8,7 +8,7 @@ output:
     df_print: paged
 ---
 
-*Packages*: HSAUR3, ISwR, survival, coin, party
+*Packages*: HSAUR3, ISwR, survival, coin, party, survminer
 
 *Collaborators*: 
 
@@ -44,11 +44,11 @@ survival needs a survival indicator (==1)
     
     b. Provide a graph, including 95% confidence limits, of the Kaplan-Meier estimate of the entire study.
     
-    ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-2-1.pdf)<!-- --> 
+    ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-2-1.pdf)<!-- --> ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-2-2.pdf)<!-- --> 
     
     c. Is there a difference in the survival rates between males and females? Provide a formal statistical test with a p-value and visual evidence.
     
-    ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-3-1.pdf)<!-- --> 
+    ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-3-1.pdf)<!-- --> ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-3-2.pdf)<!-- --> 
     
     ```
     ## 
@@ -78,7 +78,7 @@ survival needs a survival indicator (==1)
     ##   750      3      25    0.125  0.0549       0.0173        0.232
     ```
     
-    ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-3-2.pdf)<!-- --> 
+    ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-3-3.pdf)<!-- --> ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-3-4.pdf)<!-- --> ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-3-5.pdf)<!-- --> 
     
     ```
     ## 
@@ -109,7 +109,7 @@ survival needs a survival indicator (==1)
     ## [1] 63
     ```
     
-    ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-4-1.pdf)<!-- --> 
+    ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-4-1.pdf)<!-- --> ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-4-2.pdf)<!-- --> 
     
     ```
     ## 
@@ -139,11 +139,11 @@ survival needs a survival indicator (==1)
     ##   750      4      33   0.0659  0.0306      0.00601        0.126
     ```
     
-    ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-4-2.pdf)<!-- --> 
+    ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-4-3.pdf)<!-- --> ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-4-4.pdf)<!-- --> ![](Soupir_Homework_7_files/figure-latex/unnamed-chunk-4-5.pdf)<!-- --> 
     
     ```
     ## 
-    ## Chisq test between males and females:
+    ## Chisq test between younger and older:
     ```
     
     ```
