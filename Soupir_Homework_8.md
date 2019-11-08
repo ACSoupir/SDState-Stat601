@@ -191,7 +191,11 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
     ## [1] 15.0245
     ```
     
+<<<<<<< HEAD
     **Comparing the regression tree's, both unpruned and pruned, shows that the unpruned tree has lower mean squared error in the predicted DEXfat. A median regression was also created and the mean squared error was calculated. The mean squared error of the median regression was greater than the pruned tree putting it at the worst approach of the 3 at predicting the DEXfat response variable.**
+=======
+    **
+>>>>>>> 240b8087e200b6c91a39e69b0df4fdccf53f8542
     
     b) Choose one independent variable. For the relationship between this variable and DEXfat, create linear regression quantile models for the 25%, 50% and 75% quantiles. Plot DEXfat vs that independent variable and plot the lines from the models on the graph. 
     
@@ -202,5 +206,11 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
 *Resources Used*:
 
 + rdocumentation.org
+<<<<<<< HEAD
 + theanalysisfactor.com
 + 
+=======
++ stackexchange.com
++ rpkgs.datanovia.com/survminer
++ sphweb.bumc.bu.edu (Boston University)
+>>>>>>> 240b8087e200b6c91a39e69b0df4fdccf53f8542
