@@ -1,0 +1,181 @@
+---
+title: "Homework 8"
+author: "Alex Soupir"
+date: "November 7, 2019"
+output:
+  pdf_document:
+    keep_md: true
+    df_print: paged
+---
+
+*Packages*: HSAUR3, quantreg, TH.data
+
+*Collaborators*: 
+
+**Chapter 12**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=F,warning=F,echo=F,fig_height=10,fig_width=7,cache = F)
+```
+
+Answer all questions specified on the problem and include a discussion on how your results answered/addressed the question.
+
+Submit your \textbf{.rmd} file with the knitted \textbf{PDF} (or knitted Word Document saved as a PDF). If you are having trouble with .rmd, let us know and we will help you, but both the .rmd and the PDF are required.
+
+This file can be used as a skeleton document for your code/write up. Please follow the instructions found under Content for Formatting and Guidelines. No code should be in your PDF write-up unless stated otherwise.
+
+For any question asking for plots/graphs, please do as the question asks as well as do the same but using the respective commands in the GGPLOT2 library. (So if the question asks for one plot, your results should have two plots. One produced using the given R-function and one produced from the GGPLOT2 equivalent). This doesn't apply to questions that don't specifically ask for a plot, however I still would encourage you to produce both.
+
+You do not need to include the above statements.
+
+Please do the following problems from the text book R Handbook and stated.
+
+<!--
+#don't overplot distributions
+xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
+       ylab = "Head circumference (cm)",
+       scales = list(x = list(relation = "free")),
+       layout = c(2, 1), pch = 19,
+       col = rgb(.1, .1, .1, .1))
+
+
+-->
+
+1. Consider the {\textbf{clouds}} data from the {\textbf{HSAUR3}} package
+   
+    a) Review the linear model fitted to this data in Chapter 6 of the text book and report the model and findings. 
+    
+    ```{r, echo=FALSE}
+    library(HSAUR3)
+    set.seed(333)
+    
+    data(clouds)
+    
+    clouds_formula = rainfall ~ seeding + seeding:(sne + cloudcover + prewetness + echomotion) + time
+    #Xstar = model.matrix(clouds_formula, data = clouds)
+    
+    #attr(Xstar, "contrasts")
+    
+    clouds_lm = lm(clouds_formula, data = clouds)
+    #class(clouds_lm)
+    
+    message("Summary of Chapter 6 Model")
+    summary(clouds_lm)
+    betastar = coef(clouds_lm)
+    clouds_resid = residuals(clouds_lm)
+    clouds_fitted = fitted(clouds_lm)
+    psymb = as.numeric(clouds$seeding)
+    plot(rainfall ~ sne, data = clouds, pch = psymb, xlab = "S-Ne criterion")
+    abline(lm(rainfall~sne, data=clouds, subset= seeding == 'no'))
+    abline(lm(rainfall~sne, data = clouds, subset = seeding == "yes"), lty = 2)
+    legend("topright", legend = c("No seeding", "Seeding"), pch = 1:2, lty = 1:2, bty = "n")
+    ```
+    
+    **Above is the model summary as well as the plot of the relationship between the suitability criterion and rainfall with and without seeding. The summary shows that a model with seeding is better able to predict the rainfall than a model with no cloud seeding. Seeding clouds and suitability criterion also shows significance to the model meaning that the effect of seeding clouds is not standalone but also depends on the suitability criterion for determining the rainfall.**
+      
+    b) Fit a median regression model. 
+    
+    ```{r, echo=FALSE}
+    library(quantreg)
+    set.seed(333)
+    rq_seed= rq(clouds_formula, data = clouds, tau = 0.5)
+    summary(rq_seed, se = "rank")$coef
+    
+    plot(rainfall~sne, data=clouds, pch=psymb, xlab="S-Ne Criterion")
+    abline(rq(rainfall~sne,data=clouds,tau=0.5,seeding== "no"))
+    abline(rq(rainfall~sne,data=clouds,tau=0.5,seeding=="yes"),lty=2)
+    legend("topright",legend=c("No seeding", "Seeding"), pch=1:2, lty=1:2, bty="n")
+    #summary(rq_seed)
+    
+    ```
+    
+    **A median regression model was fit using *tau = 0.5* on the same formula from the book that was used in *Part A*. The plot was created the same was as *Part A* as well but using *rq* instead of *lm* and adding *tau*.**
+
+    c) Compare the two results. 
+    
+    ```{r, echo=FALSE}
+    set.seed(333)
+    mod1a_no = lm(rainfall~sne, data=clouds, subset= seeding == 'no')
+    mod1a_yes = lm(rainfall~sne, data = clouds, subset = seeding == "yes")
+    mod1b_no = rq(rainfall~sne,data=clouds,tau=0.5,seeding== "no")
+    mod1b_yes = rq(rainfall~sne,data=clouds,tau=0.5,seeding=="yes")
+    
+    preds1a_no = predict(mod1a_no,type="response")
+    preds1a_yes = predict(mod1a_yes,type="response")
+    preds1b_no = predict(mod1b_no,type="response")
+    preds1b_yes = predict(mod1b_yes,type="response")
+    
+    obs1_no = subset(clouds, seeding == "no")$rainfall
+    obs1_yes = subset(clouds, seeding == "yes")$rainfall
+    
+    cat("\nMean squared error of linear model on not seeding data: \n")
+    mean((preds1a_no - obs1_no)^2)
+    cat("\nMean squared error of linear model on seeding data: \n")
+    mean((preds1a_yes - obs1_yes)^2)
+    cat("\nMean squared error of median model on not seeding data: \n")
+    mean((preds1b_no - obs1_no)^2)
+    cat("\nMean squared error of median model on seeding data: \n")
+    mean((preds1b_yes - obs1_yes)^2)
+    
+    cat("\nCoefficients of linear and median models using clouds_formula from book: \n")
+    coeffs = data.frame(coefficients(clouds_lm))
+    coeffs = cbind(coeffs, data.frame(rq_seed$coefficients))
+    colnames(coeffs) = c("Linear","Median")
+    print(coeffs)
+    ```
+    
+    **Comparing the plots produced in parts *A* and *B*, the largest difference in the change in the *No seeding* line where it went from having a negative slope when using the linear model to having a positive slope using the median regression. This could be due to the extreme point at about (1.7, 13) doesn't have as much 'pull' in the model anymore. The slope of the seeding model from linear to median increased slightly. The linear model produced a lower MSE for both the data created with cloud seeding and without cloud seeding. Additionally, the coefficients for both models were placed into a table similarly to in lecture. The seeding coefficient for when clouds are seeded is rather different between the linear model and the median model.**
+    
+2. Reanalyze the {\textbf{bodyfat}} data from the {\textbf{TH.data}} package. 
+
+    a) Compare the regression tree approach from chapter 9 of the textbook to median regression and summarize the different findings.
+    
+    ```{r, echo=FALSE}
+    library(TH.data)
+    set.seed(333)
+    
+    data(bodyfat)
+    
+    bdft_equation = DEXfat ~ age + waistcirc + hipcirc + elbowbreadth + kneebreadth
+    
+    library(rpart)
+    bdft_rpart = rpart(bdft_equation, data = bodyfat, control = rpart.control(minsplit=10))
+    
+    library(partykit)
+    plot(as.party(bdft_rpart), tp_args = list(id = FALSE))
+    
+    opt <- which.min(bdft_rpart$cptable[,"xerror"])
+    cp <- bdft_rpart$cptable[opt, "CP"]
+    bdft_prune <- prune(bdft_rpart, cp = cp)
+    plot(as.party(bdft_prune), tp_args = list(id = FALSE))
+    
+    cat("MSE of tree using Chapter 9 equation without pruning: \n")
+    bdft_pred = predict(bdft_rpart, newdata = bodyfat)
+    bdft_mse = mean((bodyfat$DEXfat - bdft_pred)^2)
+    bdft_mse
+    
+    cat("MSE of tree using Chapter 9 equation with pruning: \n")
+    bdft_pred2 = predict(bdft_prune, newdata = bodyfat)
+    bdft_mse2 = mean((bodyfat$DEXfat - bdft_pred2)^2)
+    bdft_mse2
+    
+    cat("MSE of median regression of original equation: \n")
+    bdft_med1= rq(bdft_equation, data = bodyfat, tau = 0.5)
+    bdft_medpred1 = predict(bdft_med1, type="response")
+    bdft_medmse1 = mean((bodyfat$DEXfat - bdft_medpred1)^2)
+    bdft_medmse1
+    ```
+    
+    **Comparing the regression tree's, both unpruned and pruned, shows that the unpruned tree has lower mean squared error in the predicted DEXfat. A median regression was also created and the mean squared error was calculated. The mean squared error of the median regression was greater than the pruned tree putting it at the worst approach of the 3 at predicting the DEXfat response variable.**
+    
+    b) Choose one independent variable. For the relationship between this variable and DEXfat, create linear regression quantile models for the 25%, 50% and 75% quantiles. Plot DEXfat vs that independent variable and plot the lines from the models on the graph. 
+    
+3. Consider {\textbf{db}} data from the lecture notes (package {\textbf{gamlss.data}}). Refit the additive quantile regression models presented ({\textbf{rqssmod}}) with varying values of $\lambda$ (lambda) in {\textbf{qss}}. How do the estimated quantile curves change?
+  
+4. Read the paper by Koenker and Hallock (2001), posted on D2L. Write a one page summary of the paper. This should include but not be limited to introduction, motivation, case study considered and findings. 
+
+*Resources Used*:
+
++ rdocumentation.org
++ theanalysisfactor.com
++ 
