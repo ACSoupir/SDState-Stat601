@@ -8,7 +8,7 @@ output:
     df_print: paged
 ---
 
-*Packages*: HSAUR3, quantreg, TH.data
+*Packages*: HSAUR3, quantreg, TH.data, gamlss.data, lattice, GGplot2
 
 *Collaborators*: 
 
@@ -47,6 +47,7 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
     
     ```{r, echo=FALSE}
     library(HSAUR3)
+    library(ggplot2)
     set.seed(333)
     
     data(clouds)
@@ -69,6 +70,7 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
     abline(lm(rainfall~sne, data=clouds, subset= seeding == 'no'))
     abline(lm(rainfall~sne, data = clouds, subset = seeding == "yes"), lty = 2)
     legend("topright", legend = c("No seeding", "Seeding"), pch = 1:2, lty = 1:2, bty = "n")
+    ggplot(clouds, aes(x=sne, y=rainfall, shape=seeding, color=seeding))+geom_point(size=2)+geom_smooth(method=lm,se=FALSE, fullrange=TRUE,size=.5)
     ```
     
     **Above is the model summary as well as the plot of the relationship between the suitability criterion and rainfall with and without seeding. The summary shows that a model with seeding is better able to predict the rainfall than a model with no cloud seeding. Seeding clouds and suitability criterion also shows significance to the model meaning that the effect of seeding clouds is not standalone but also depends on the suitability criterion for determining the rainfall.**
@@ -86,6 +88,8 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
     abline(rq(rainfall~sne,data=clouds,tau=0.5,seeding=="yes"),lty=2)
     legend("topright",legend=c("No seeding", "Seeding"), pch=1:2, lty=1:2, bty="n")
     #summary(rq_seed)
+    
+    ggplot(clouds, aes(x=sne, y=rainfall, shape=seeding, color=seeding))+geom_point(size=2)+geom_smooth(method=rq,se=FALSE, fullrange=TRUE,size=.5)
     
     ```
     
@@ -107,15 +111,54 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
     
     obs1_no = subset(clouds, seeding == "no")$rainfall
     obs1_yes = subset(clouds, seeding == "yes")$rainfall
+    ```
+    
+    ```{r, eval=FALSE, echo=FALSE}
     
     cat("\nMean squared error of linear model on not seeding data: \n")
     mean((preds1a_no - obs1_no)^2)
+    cat(c("AIC: ", AIC(mod1a_no), "\n"))
+    cat(c("mean absolute error: ", mean(abs(preds1a_no-obs1_no)), "\n"))
     cat("\nMean squared error of linear model on seeding data: \n")
     mean((preds1a_yes - obs1_yes)^2)
+    cat(c("AIC: ", AIC(mod1a_yes), "\n"))
+    cat(c("mean absolute error: ", mean(abs(preds1a_yes-obs1_yes)), "\n"))
     cat("\nMean squared error of median model on not seeding data: \n")
     mean((preds1b_no - obs1_no)^2)
+    cat(c("AIC: ", AIC(mod1b_no), "\n"))
+    cat(c("mean absolute error: ", mean(abs(preds1b_no-obs1_no)), "\n"))
     cat("\nMean squared error of median model on seeding data: \n")
     mean((preds1b_yes - obs1_yes)^2)
+    cat(c("AIC: ", AIC(mod1b_yes), "\n"))
+    cat(c("mean absolute error: ", mean(abs(preds1b_yes-obs1_yes)), "\n"))
+    
+    preds_6l = predict(clouds_lm, type="response")
+    preds_6m = predict(rq_seed, type="response")
+    obs_6 = clouds$rainfall
+    
+    cat("\nMean squared error of Chapter 6 linear model: \n")
+    mean((preds_6l - obs_6)^2)
+    cat(c("AIC: ", AIC(clouds_lm), "\n"))
+    cat(c("mean absolute error: ", mean(abs(preds_6l-obs_6)), "\n"))
+    cat("\nAIC of Chapter 6 median regression: \n")
+    mean((preds_6m - obs_6)^2)
+    cat(c("AIC: ", AIC(rq_seed), "\n"))
+    cat(c("mean absolute error: ", mean(abs(preds_6m-obs_6)), "\n"))
+    ```
+    
+    ```{r, echo=FALSE}
+    preds_6l = predict(clouds_lm, type="response")
+    preds_6m = predict(rq_seed, type="response")
+    obs_6 = clouds$rainfall
+    
+    lin_med = data.frame("Chapt 6 Linear" = c(mean((preds_6l - obs_6)^2), 
+                                              AIC(clouds_lm),
+                                              mean(abs(preds_6l-obs_6))),
+                         "Chapt 6 Median" = c(mean((preds_6m - obs_6)^2),
+                                              AIC(rq_seed),
+                                              mean(abs(preds_6m-obs_6))))
+    row.names(lin_med) = c("MSE","AIC","MAE")
+    print(lin_med)
     
     cat("\nCoefficients of linear and median models using clouds_formula from book: \n")
     coeffs = data.frame(coefficients(clouds_lm))
@@ -123,8 +166,14 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
     colnames(coeffs) = c("Linear","Median")
     print(coeffs)
     ```
+    <!--
     
     **Comparing the plots produced in parts *A* and *B*, the largest difference in the change in the *No seeding* line where it went from having a negative slope when using the linear model to having a positive slope using the median regression. This could be due to the extreme point at about (1.7, 13) doesn't have as much 'pull' in the model anymore. The slope of the seeding model from linear to median increased slightly. The linear model produced a lower MSE for both the data created with cloud seeding and without cloud seeding. Additionally, the coefficients for both models were placed into a table similarly to in lecture. The seeding coefficient for when clouds are seeded is rather different between the linear model and the median model.**
+    **The short models that were created for plots showed the linear models producing lower mean squared error values, however looking at the AIC the median regression models are better fitters of the input data even though prediction isn't as great. This follows that of the model created in Chapter 6 that was fit for linear and median regression; the median regression produced a lower AIC value than did the linear regression model.**
+    **Mean absolute error is like the AIC with the median regression models producing lower error, most likely due to less impact by the outliers of the data. **
+    -->
+    
+    **The linear model of the equation from chapter 6 shows a lower mean squared error than the median model. However, the median model does produce a lower mean absolute error and lower AIC than the linear model. This could be because the median model isn't taking the outliers into account as much as a mean weighted calculation would, but this could produce a higher error if the model shifts too far from the outliers to fit other values better.**
     
 2. Reanalyze the {\textbf{bodyfat}} data from the {\textbf{TH.data}} package. 
 
@@ -149,28 +198,207 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
     bdft_prune <- prune(bdft_rpart, cp = cp)
     plot(as.party(bdft_prune), tp_args = list(id = FALSE))
     
-    cat("MSE of tree using Chapter 9 equation without pruning: \n")
+    #cat("MSE of tree using Chapter 9 equation without pruning: \n")
     bdft_pred = predict(bdft_rpart, newdata = bodyfat)
     bdft_mse = mean((bodyfat$DEXfat - bdft_pred)^2)
-    bdft_mse
+    bdft_mae = mean(abs(bodyfat$DEXfat-bdft_pred))
     
-    cat("MSE of tree using Chapter 9 equation with pruning: \n")
+    #cat("MSE of tree using Chapter 9 equation with pruning: \n")
     bdft_pred2 = predict(bdft_prune, newdata = bodyfat)
     bdft_mse2 = mean((bodyfat$DEXfat - bdft_pred2)^2)
-    bdft_mse2
+    bdft_mae2 = mean(abs(bodyfat$DEXfat-bdft_pred2))
     
-    cat("MSE of median regression of original equation: \n")
+    #cat("MSE of median regression of original equation: \n")
     bdft_med1= rq(bdft_equation, data = bodyfat, tau = 0.5)
     bdft_medpred1 = predict(bdft_med1, type="response")
     bdft_medmse1 = mean((bodyfat$DEXfat - bdft_medpred1)^2)
-    bdft_medmse1
+    bdft_medmae1 = mean(abs(bodyfat$DEXfat-bdft_medpred1))
+    
+    tre_med = data.frame("Unpruned.Tree" = c(bdft_mse, bdft_mae),
+                         "Pruned.Tree" = c(bdft_mse2, bdft_mae2),
+                         "Median.Reg" = c(bdft_medmse1, bdft_medmae1))
+    row.names(tre_med) = c("MSE","MAE")
+    print(tre_med)
     ```
     
-    **Comparing the regression tree's, both unpruned and pruned, shows that the unpruned tree has lower mean squared error in the predicted DEXfat. A median regression was also created and the mean squared error was calculated. The mean squared error of the median regression was greater than the pruned tree putting it at the worst approach of the 3 at predicting the DEXfat response variable.**
+    **Comparing the regression tree's, both unpruned and pruned, shows that the unpruned tree has lower mean squared error in the predicted DEXfat. A median regression was also created and the mean squared error was calculated. The mean squared error of the median regression was greater than the pruned tree. The mean absolute error of the 3 models shows that the unpruned tree has the least amount of error followed by the median regression. The pruned tree's error is very close to the median regression error but higher.**
     
     b) Choose one independent variable. For the relationship between this variable and DEXfat, create linear regression quantile models for the 25%, 50% and 75% quantiles. Plot DEXfat vs that independent variable and plot the lines from the models on the graph. 
     
+    ```{r, echo=FALSE}
+    set.seed(333)
+    waist = rq(DEXfat ~ waistcirc, data = bodyfat, tau=c(0.25, 0.5, 0.75))
+    summary(waist)
+    
+    plot(DEXfat ~ waistcirc, data = bodyfat, xlab = "Waist Circumference")
+    abline(rq(DEXfat ~ waistcirc, data = bodyfat, tau = 0.25),lty = 1)
+    abline(rq(DEXfat ~ waistcirc, data = bodyfat, tau = 0.5), lty = 2)
+    abline(rq(DEXfat ~ waistcirc, data = bodyfat, tau = 0.75),lty = 3)
+    legend("topleft", legend = c("25%", "50%", "75%"), lty = 1:3, bty = "n")
+    
+    med_reg2b = data.frame(t(coef(waist)))
+    colnames(med_reg2b) = c("intercept","slope")
+    qplot(x=waistcirc, y=DEXfat, data=bodyfat) + geom_abline(aes(intercept=intercept, slope=slope, linetype=row.names(med_reg2b)), data=med_reg2b)
+    ```
+    
 3. Consider {\textbf{db}} data from the lecture notes (package {\textbf{gamlss.data}}). Refit the additive quantile regression models presented ({\textbf{rqssmod}}) with varying values of $\lambda$ (lambda) in {\textbf{qss}}. How do the estimated quantile curves change?
+
+```{r, echo=FALSE, fig.height=4}
+library(gamlss.data)
+library(lattice)
+set.seed(333)
+
+data(db)
+db2 <- db
+tau <- c(.03, .15, .5, .85, .97)
+
+#lambda 1
+rqssmod <- vector(mode = "list", length = length(tau))
+db2$lage <- with(db2, age^(1/3))
+for (i in 1:length(tau))
+  rqssmod[[i]] <- rqss(head ~ qss(lage, lambda = 1),
+                       data = db2, tau = tau[i])
+
+gage <- seq(from = min(db2$age), to = max(db2$age), length = 100)
+p <- sapply(1:length(tau), function(i) { predict(rqssmod[[i]],
+                                                 newdata = data.frame(lage = gage^(1/3)))
+})
+
+## Playing with the whole db data 
+pfun <- function(x, y, ...) {
+  panel.xyplot(x = x, y = y, ...)
+  apply(p, 2, function(x) panel.lines(gage, x))
+  panel.text(rep(max(db2$age), length(tau)),
+             p[nrow(p),], label = tau, cex = 0.9)
+  #panel.text(rep(min(db2$age), length(tau)),
+  #p[1,], label = tau, cex = 0.9)
+}
+xyplot(head ~ age, data = db2, main = "Lambda = 1", xlab = "Age (years)",
+       ylab = "Head circumference (cm)", pch = 16,
+       scales = list(x = list(relation = "free")),
+       layout = c(1, 1), col = rgb(.1, .1, .1, .1),
+       panel = pfun)
+panel = pfun
+ggplot(data = db, aes(y=head ,x= age))+geom_point()+geom_quantile(quantiles=tau,method = "rqss", lambda = 1)+ggtitle("Lambda=1")+xlab("Age (years)")+ylab("Head circumference (cm)")
+
+#lambda 10
+rqssmod <- vector(mode = "list", length = length(tau))
+db2$lage <- with(db2, age^(1/3))
+for (i in 1:length(tau))
+  rqssmod[[i]] <- rqss(head ~ qss(lage, lambda = 10),
+                       data = db2, tau = tau[i])
+
+gage <- seq(from = min(db2$age), to = max(db2$age), length = 100)
+p <- sapply(1:length(tau), function(i) { predict(rqssmod[[i]],
+                                                 newdata = data.frame(lage = gage^(1/3)))
+})
+
+## Playing with the whole db data 
+pfun <- function(x, y, ...) {
+  panel.xyplot(x = x, y = y, ...)
+  apply(p, 2, function(x) panel.lines(gage, x))
+  panel.text(rep(max(db2$age), length(tau)),
+             p[nrow(p),], label = tau, cex = 0.9)
+  #panel.text(rep(min(db2$age), length(tau)),
+  #p[1,], label = tau, cex = 0.9)
+}
+xyplot(head ~ age, data = db2, main = "Lambda = 10", xlab = "Age (years)",
+       ylab = "Head circumference (cm)", pch = 16,
+       scales = list(x = list(relation = "free")),
+       layout = c(1, 1), col = rgb(.1, .1, .1, .1),
+       panel = pfun)
+panel = pfun
+ggplot(data = db, aes(y=head ,x= age))+geom_point()+geom_quantile(quantiles=tau,method = "rqss", lambda = 10)+ggtitle("Lambda=10")+xlab("Age (years)")+ylab("Head circumference (cm)")
+
+#lambda 20
+rqssmod <- vector(mode = "list", length = length(tau))
+db2$lage <- with(db2, age^(1/3))
+for (i in 1:length(tau))
+  rqssmod[[i]] <- rqss(head ~ qss(lage, lambda = 20),
+                       data = db2, tau = tau[i])
+
+gage <- seq(from = min(db2$age), to = max(db2$age), length = 100)
+p <- sapply(1:length(tau), function(i) { predict(rqssmod[[i]],
+                                                 newdata = data.frame(lage = gage^(1/3)))
+})
+
+## Playing with the whole db data 
+pfun <- function(x, y, ...) {
+  panel.xyplot(x = x, y = y, ...)
+  apply(p, 2, function(x) panel.lines(gage, x))
+  panel.text(rep(max(db2$age), length(tau)),
+             p[nrow(p),], label = tau, cex = 0.9)
+  #panel.text(rep(min(db2$age), length(tau)),
+  #p[1,], label = tau, cex = 0.9)
+}
+xyplot(head ~ age, data = db2, main = "Lambda = 20", xlab = "Age (years)",
+       ylab = "Head circumference (cm)", pch = 16,
+       scales = list(x = list(relation = "free")),
+       layout = c(1, 1), col = rgb(.1, .1, .1, .1),
+       panel = pfun)
+panel = pfun
+ggplot(data = db, aes(y=head ,x= age))+geom_point()+geom_quantile(quantiles=tau,method = "rqss", lambda = 20)+ggtitle("Lambda=20")+xlab("Age (years)")+ylab("Head circumference (cm)")
+
+#lambda 50
+rqssmod <- vector(mode = "list", length = length(tau))
+db2$lage <- with(db2, age^(1/3))
+for (i in 1:length(tau))
+  rqssmod[[i]] <- rqss(head ~ qss(lage, lambda = 50),
+                       data = db2, tau = tau[i])
+
+gage <- seq(from = min(db2$age), to = max(db2$age), length = 100)
+p <- sapply(1:length(tau), function(i) { predict(rqssmod[[i]],
+                                                 newdata = data.frame(lage = gage^(1/3)))
+})
+
+## Playing with the whole db data 
+pfun <- function(x, y, ...) {
+  panel.xyplot(x = x, y = y, ...)
+  apply(p, 2, function(x) panel.lines(gage, x))
+  panel.text(rep(max(db2$age), length(tau)),
+             p[nrow(p),], label = tau, cex = 0.9)
+  #panel.text(rep(min(db2$age), length(tau)),
+  #p[1,], label = tau, cex = 0.9)
+}
+xyplot(head ~ age, data = db2, main = "Lambda = 50", xlab = "Age (years)",
+       ylab = "Head circumference (cm)", pch = 16,
+       scales = list(x = list(relation = "free")),
+       layout = c(1, 1), col = rgb(.1, .1, .1, .1),
+       panel = pfun)
+panel = pfun
+ggplot(data = db, aes(y=head ,x= age))+geom_point()+geom_quantile(quantiles=tau,method = "rqss", lambda = 50)+ggtitle("Lambda=50")+xlab("Age (years)")+ylab("Head circumference (cm)")
+
+#lambda 100
+rqssmod <- vector(mode = "list", length = length(tau))
+db2$lage <- with(db2, age^(1/3))
+for (i in 1:length(tau))
+  rqssmod[[i]] <- rqss(head ~ qss(lage, lambda = 100),
+                       data = db2, tau = tau[i])
+
+gage <- seq(from = min(db2$age), to = max(db2$age), length = 100)
+p <- sapply(1:length(tau), function(i) { predict(rqssmod[[i]],
+                                                 newdata = data.frame(lage = gage^(1/3)))
+})
+
+## Playing with the whole db data 
+pfun <- function(x, y, ...) {
+  panel.xyplot(x = x, y = y, ...)
+  apply(p, 2, function(x) panel.lines(gage, x))
+  panel.text(rep(max(db2$age), length(tau)),
+             p[nrow(p),], label = tau, cex = 0.9)
+  #panel.text(rep(min(db2$age), length(tau)),
+  #p[1,], label = tau, cex = 0.9)
+}
+xyplot(head ~ age, data = db2, main = "Lambda = 100", xlab = "Age (years)",
+       ylab = "Head circumference (cm)", pch = 16,
+       scales = list(x = list(relation = "free")),
+       layout = c(1, 1), col = rgb(.1, .1, .1, .1),
+       panel = pfun)
+panel = pfun
+ggplot(data = db, aes(y=head ,x= age))+geom_point()+geom_quantile(quantiles=tau,method = "rqss", lambda = 100)+ggtitle("Lambda=100")+xlab("Age (years)")+ylab("Head circumference (cm)")
+```
+
+**An increase in lambda, which is the penalty for the smoothness as said in lecture, smooths the quantile curves out more and more as it increases to 100 from 1. The 0.03 line also starts getting further away from the body of the data between 0 and 5 years of age as the function tries to smooth it out. A lambda of 1 which was generated in lecture keeps the lines tightly around the data where there are sharp curves between 0 and 5, and also has more 'wiggling' from about 5 to the end. An increase in lambda causes smoother curves.**
   
 4. Read the paper by Koenker and Hallock (2001), posted on D2L. Write a one page summary of the paper. This should include but not be limited to introduction, motivation, case study considered and findings. 
 
@@ -178,4 +406,4 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
 
 + rdocumentation.org
 + theanalysisfactor.com
-+ 
++ r-bloggers.com

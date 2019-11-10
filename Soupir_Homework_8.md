@@ -8,7 +8,7 @@ output:
     df_print: paged
 ---
 
-*Packages*: HSAUR3, quantreg, TH.data
+*Packages*: HSAUR3, quantreg, TH.data, gamlss.data, lattice, GGplot2
 
 *Collaborators*: 
 
@@ -74,7 +74,7 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
     ## F-statistic: 3.274 on 10 and 13 DF,  p-value: 0.02431
     ```
     
-    ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-1-1.pdf)<!-- --> 
+    ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-1-1.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-1-2.pdf)<!-- --> 
     
     **Above is the model summary as well as the plot of the relationship between the suitability criterion and rainfall with and without seeding. The summary shows that a model with seeding is better able to predict the rainfall than a model with no cloud seeding. Seeding clouds and suitability criterion also shows significance to the model meaning that the effect of seeding clouds is not standalone but also depends on the suitability criterion for determining the rainfall.**
       
@@ -96,47 +96,22 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
     ## seedingyes:echomotionstationary   2.78255068 -1.797693e+308  1.797693e+308
     ```
     
-    ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-2-1.pdf)<!-- --> 
+    ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-2-1.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-2-2.pdf)<!-- --> 
     
     **A median regression model was fit using *tau = 0.5* on the same formula from the book that was used in *Part A*. The plot was created the same was as *Part A* as well but using *rq* instead of *lm* and adding *tau*.**
 
     c) Compare the two results. 
     
     
-    ```
-    ## 
-    ## Mean squared error of linear model on not seeding data:
-    ```
+    
+    
+    
     
     ```
-    ## [1] 10.22228
-    ```
-    
-    ```
-    ## 
-    ## Mean squared error of linear model on seeding data:
-    ```
-    
-    ```
-    ## [1] 4.292417
-    ```
-    
-    ```
-    ## 
-    ## Mean squared error of median model on not seeding data:
-    ```
-    
-    ```
-    ## [1] 12.24009
-    ```
-    
-    ```
-    ## 
-    ## Mean squared error of median model on seeding data:
-    ```
-    
-    ```
-    ## [1] 4.834842
+    ##     Chapt.6.Linear Chapt.6.Median
+    ## MSE       2.632871      4.2491485
+    ## AIC     115.342843    102.4357642
+    ## MAE       1.283675      0.9827484
     ```
     
     ```
@@ -158,59 +133,74 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
     ## seedingno:echomotionstationary   3.15281358  2.13502276
     ## seedingyes:echomotionstationary  2.59059513  2.78255068
     ```
+    <!--
     
     **Comparing the plots produced in parts *A* and *B*, the largest difference in the change in the *No seeding* line where it went from having a negative slope when using the linear model to having a positive slope using the median regression. This could be due to the extreme point at about (1.7, 13) doesn't have as much 'pull' in the model anymore. The slope of the seeding model from linear to median increased slightly. The linear model produced a lower MSE for both the data created with cloud seeding and without cloud seeding. Additionally, the coefficients for both models were placed into a table similarly to in lecture. The seeding coefficient for when clouds are seeded is rather different between the linear model and the median model.**
+    **The short models that were created for plots showed the linear models producing lower mean squared error values, however looking at the AIC the median regression models are better fitters of the input data even though prediction isn't as great. This follows that of the model created in Chapter 6 that was fit for linear and median regression; the median regression produced a lower AIC value than did the linear regression model.**
+    **Mean absolute error is like the AIC with the median regression models producing lower error, most likely due to less impact by the outliers of the data. **
+    -->
+    
+    **The linear model of the equation from chapter 6 shows a lower mean squared error than the median model. However, the median model does produce a lower mean absolute error and lower AIC than the linear model. This could be because the median model isn't taking the outliers into account as much as a mean weighted calculation would, but this could produce a higher error if the model shifts too far from the outliers to fit other values better.**
     
 2. Reanalyze the {\textbf{bodyfat}} data from the {\textbf{TH.data}} package. 
 
     a) Compare the regression tree approach from chapter 9 of the textbook to median regression and summarize the different findings.
     
-    ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-4-1.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-4-2.pdf)<!-- --> 
+    ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-6-1.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-6-2.pdf)<!-- --> 
     
     ```
-    ## MSE of tree using Chapter 9 equation without pruning:
+    ##     Unpruned.Tree Pruned.Tree Median.Reg
+    ## MSE     10.170503   14.575003  15.024504
+    ## MAE      2.476113    2.984743   2.947714
     ```
     
-    ```
-    ## [1] 10.1705
-    ```
-    
-    ```
-    ## MSE of tree using Chapter 9 equation with pruning:
-    ```
-    
-    ```
-    ## [1] 14.575
-    ```
-    
-    ```
-    ## MSE of median regression of original equation:
-    ```
-    
-    ```
-    ## [1] 15.0245
-    ```
-    
-<<<<<<< HEAD
-    **Comparing the regression tree's, both unpruned and pruned, shows that the unpruned tree has lower mean squared error in the predicted DEXfat. A median regression was also created and the mean squared error was calculated. The mean squared error of the median regression was greater than the pruned tree putting it at the worst approach of the 3 at predicting the DEXfat response variable.**
-=======
-    **
->>>>>>> 240b8087e200b6c91a39e69b0df4fdccf53f8542
+    **Comparing the regression tree's, both unpruned and pruned, shows that the unpruned tree has lower mean squared error in the predicted DEXfat. A median regression was also created and the mean squared error was calculated. The mean squared error of the median regression was greater than the pruned tree. The mean absolute error of the 3 models shows that the unpruned tree has the least amount of error followed by the median regression. The pruned tree's error is very close to the median regression error but higher.**
     
     b) Choose one independent variable. For the relationship between this variable and DEXfat, create linear regression quantile models for the 25%, 50% and 75% quantiles. Plot DEXfat vs that independent variable and plot the lines from the models on the graph. 
     
+    
+    ```
+    ## 
+    ## Call: rq(formula = DEXfat ~ waistcirc, tau = c(0.25, 0.5, 0.75), data = bodyfat)
+    ## 
+    ## tau: [1] 0.25
+    ## 
+    ## Coefficients:
+    ##             coefficients lower bd  upper bd 
+    ## (Intercept) -32.49837    -37.57797 -25.65679
+    ## waistcirc     0.67939      0.62247   0.74718
+    ## 
+    ## Call: rq(formula = DEXfat ~ waistcirc, tau = c(0.25, 0.5, 0.75), data = bodyfat)
+    ## 
+    ## tau: [1] 0.5
+    ## 
+    ## Coefficients:
+    ##             coefficients lower bd  upper bd 
+    ## (Intercept) -26.80515    -36.03078 -16.69178
+    ## waistcirc     0.65505      0.55058   0.77269
+    ## 
+    ## Call: rq(formula = DEXfat ~ waistcirc, tau = c(0.25, 0.5, 0.75), data = bodyfat)
+    ## 
+    ## tau: [1] 0.75
+    ## 
+    ## Coefficients:
+    ##             coefficients lower bd  upper bd 
+    ## (Intercept) -25.77722    -37.33159 -18.53524
+    ## waistcirc     0.68079      0.59051   0.82469
+    ```
+    
+    ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-7-1.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-7-2.pdf)<!-- --> 
+    
 3. Consider {\textbf{db}} data from the lecture notes (package {\textbf{gamlss.data}}). Refit the additive quantile regression models presented ({\textbf{rqssmod}}) with varying values of $\lambda$ (lambda) in {\textbf{qss}}. How do the estimated quantile curves change?
+
+![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-8-1.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-8-2.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-8-3.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-8-4.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-8-5.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-8-6.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-8-7.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-8-8.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-8-9.pdf)<!-- --> ![](Soupir_Homework_8_files/figure-latex/unnamed-chunk-8-10.pdf)<!-- --> 
+
+**An increase in lambda, which is the penalty for the smoothness as said in lecture, smooths the quantile curves out more and more as it increases to 100 from 1. The 0.03 line also starts getting further away from the body of the data between 0 and 5 years of age as the function tries to smooth it out. A lambda of 1 which was generated in lecture keeps the lines tightly around the data where there are sharp curves between 0 and 5, and also has more 'wiggling' from about 5 to the end. An increase in lambda causes smoother curves.**
   
 4. Read the paper by Koenker and Hallock (2001), posted on D2L. Write a one page summary of the paper. This should include but not be limited to introduction, motivation, case study considered and findings. 
 
 *Resources Used*:
 
 + rdocumentation.org
-<<<<<<< HEAD
 + theanalysisfactor.com
-+ 
-=======
-+ stackexchange.com
-+ rpkgs.datanovia.com/survminer
-+ sphweb.bumc.bu.edu (Boston University)
->>>>>>> 240b8087e200b6c91a39e69b0df4fdccf53f8542
++ r-bloggers.com
