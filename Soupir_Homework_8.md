@@ -197,10 +197,59 @@ xyplot(head ~ age | cut, data = db, xlab = "Age (years)",
 
 **An increase in lambda, which is the penalty for the smoothness as said in lecture, smooths the quantile curves out more and more as it increases to 100 from 1. The 0.03 line also starts getting further away from the body of the data between 0 and 5 years of age as the function tries to smooth it out. A lambda of 1 which was generated in lecture keeps the lines tightly around the data where there are sharp curves between 0 and 5, and also has more 'wiggling' from about 5 to the end. An increase in lambda causes smoother curves.**
   
-4. Read the paper by Koenker and Hallock (2001), posted on D2L. Write a one page summary of the paper. This should include but not be limited to introduction, motivation, case study considered and findings. 
+4. Read the paper by Koenker and Hallock (2001), posted on D2L. Write a one page summary of the paper. This should include but not be limited to introduction, motivation, case study considered and findings.
+
+****
+
+**Introduction**
+
+Using quantiles while displaying the data can provide the viewer with a much better understanding the data as a whole rather than only using the mean. The use of quantiles (percentiles or fractiles) allows the sampling groups to be split into groups based on the sample values. For example, a percentile of 0.25 will split the data into 2 groups, one of 25% and another with 75% of the data. Figures like boxplots and scatter plots with growth curves offer more transparent observations of data dispersion than do that of bar plots. There are other plots that utilize quantiles for displaying data which were talked about throughout the article like Quantile Engel Curves and quantile regressions.
+
+**Motivation**
+
+Quanltile regressions are more appropriate for data with dispersion and outliers because outlying data may pull averages away form the 50th percentile. Quantiles via optimizaiton shows how the minimizaiton of the sum of absolute residuals is better in some cases than is the minimizing a sum of squared residuals for means. Koenker and Hallock show how the least squares estimates can change the regression line over a median regression by only a few data points that may potentially be outliers and density of low household income and high food expenditures (mean line falls below a large portion of these points).
+
+**Case Study**
+
+The case study that was considered in this article was about using quantile regression and dertminants of infant birthweights conducted by Detailed Natality Data in 1997, which had investigated by Abrevaya in 2001. This was because most of the birthweight analyses are done using the least squares approach and not the least absolute residual values which, as we saw in the previous section, causes issues when working with data that have a high concentration towards one side. Along with the weight of the babies (g), several other metrics were recorded like race, mothers education, prenatal medical care, how much the mother smoked during pregnancy, mothers weight gain during pregnancy, and the age of the baby. If there were any data point metrics missing that baby was removed from the analysis.
+
+**Findings**
+
+The researchers found that boys are about 100 grams heavier than girls on average, but looking at the quantiles boys are much heavier than girls closer to the upper end of the distribution (about 130 - 140 grams at the 0.95 quantile). They also mention that the difference between black and white mothers is also relatively high. Looking at the graph the average difference shows that babies of black mothers are about 200 grams less than babies from white mothers. However, the babies on the lower side of the distribution close to 350 grams lighter than babies from white mothers while those babies from black mothers on the upper side of the distribution are about 160 grams lighter than babies from white mothers. They also note that there is little difference between sum of squared residuals and sum of absolute residuals for different education levels, and with the exception of education, all of the other plots show that the quantile regression falls outside of the 90% confidence interval at some point. 
+
+****
 
 *Resources Used*:
 
 + rdocumentation.org
 + theanalysisfactor.com
 + r-bloggers.com
++ Quantile Regression - Roger Koenker and Kevin Hallock
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
