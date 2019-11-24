@@ -317,6 +317,8 @@ Investigate this question using
 
     a. plots and summary statistics
     
+    
+    
     b. the GEE approach
     
     c. mixed effects model (lmer) from previous chapter

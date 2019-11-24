@@ -159,6 +159,10 @@ Investigate this question using
 
     a. plots and summary statistics
     
+    ```{r, echo=FALSE}
+    
+    ```
+    
     b. the GEE approach
     
     c. mixed effects model (lmer) from previous chapter
