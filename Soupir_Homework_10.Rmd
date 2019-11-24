@@ -1,0 +1,167 @@
+---
+title: "Homework 10"
+author: "Alex Soupir"
+date: "November 23, 2019"
+output:
+  pdf_document:
+    keep_md: true
+    df_print: paged
+---
+
+*Packages*: HSAUR3, gee, lme4, Matrix, multcomp, ggplot2, gridextra, tidyr, dplyr
+
+*Collaborators*: 
+
+**Chapter 14**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=F,warning=F,echo=F,fig_height=10,fig_width=7,cache = F)
+```
+
+
+<!--
+for gee, the data must be ordered by subject
+
+if there is a large difference between the naive SE and the robust SE, probably want to use the robust Z values when looking at p values because the naive will probably be wrong.  <_ corstr = "independence"
+
+if the naive and robust are clost together, we are not reasonably wrong in the context of the models. <- corstr = "exchangeable"
+  if there are enough degrees of freedom, check for interactions between those that are reasonably significant to try and get a better idea of what is going on
+
+
+-->
+
+Please do the following problems from the text book R Handbook and stated.
+
+1. Consider the \textbf{respiratory} data from the \textbf{HSAUR3} package.
+
+    a. Investigate the use of other correlational structures than the independence and exchangeable structures used in the text for the respiratory data.
+    
+    ```{r, echo=FALSE}
+    library(HSAUR3)
+    library(gee)
+    library(lme4)
+    library(tidyr)
+    
+    set.seed(333)
+    
+    data(respiratory)
+    
+    message("Raw respiratory table from HSAUR3:\n")
+    head(respiratory)
+    
+    resp <- subset(respiratory, month > "0")
+    resp$baseline <- rep(subset(respiratory, month == "0")$status,
+                         rep(4, 111))
+    resp$nstat <- as.numeric(resp$status == "good")
+    resp$month <- resp$month[, drop = TRUE]
+    message("Transformed table")
+    head(resp, n = 5)
+    
+    
+    names(resp)[names(resp) == "treatment"] <- "trt"
+    levels(resp$trt)[2] <- "trt"
+    
+    resp1 = resp
+    
+    resp_gee2 <- gee(nstat ~ centre + trt + gender + baseline 
+                     + age, data = resp, family = "binomial", id = subject, 
+                     corstr = "stat_M_dep", scale.fix = TRUE, 
+                     scale.value = 1)
+    resp_gee3 <- gee(nstat ~ centre + trt + gender + baseline 
+                     + age, data = resp, family = "binomial", id = subject, 
+                     corstr = "non_stat_M_dep", scale.fix = TRUE, 
+                     scale.value = 1)
+    resp_gee4 <- gee(nstat ~ centre + trt + gender + baseline 
+                     + age, data = resp, family = "binomial", id = subject, 
+                     corstr = "AR-M", scale.fix = TRUE, 
+                     scale.value = 1)
+    resp_gee5 <- gee(nstat ~ centre + trt + gender + baseline 
+                     + age, data = resp, family = "binomial", id = subject, 
+                     corstr = "unstructured", scale.fix = TRUE, 
+                     scale.value = 1)
+    
+    cat("\nCoefficients for correlation structure 'stat_M_dep': \n")
+    summary(resp_gee2)[7]
+    cat("\nCoefficients for correlation structure 'non_stat_M_dep': \n")
+    summary(resp_gee3)[7]
+    cat("\nCoefficients for correlation structure 'AR-M': \n")
+    summary(resp_gee4)[7]
+    cat("\nCoefficients for correlation structure 'unstructured': \n")
+    summary(resp_gee5)[7]
+    ```
+    
+    ```{r, echo=FALSE}
+    a = summary(resp_gee5)
+    2*pnorm(abs(a$coef[,5]), lower.tail = FALSE)
+    ```
+    
+    **Looking at the other correlation structures, minus the "fixed" correlation structure because the command never seemed to finish for some reason, is shown above withthe coefficients for each covariate. The starting point for each variable is the same between models, as mentioned in the lecture video. However, the differences between the naive standard error and the robust standard error does differ between the correlation structures stat_M_dep, non_stat_M_dep, AR_M, and unstructured. The correlation structure that resulted in the greatest differences overall between the the naive s.e. and the robust s.e. was the non_stat_M_dep, but it wasn't great as the difference seen in the lecture model with the correlation structure of independence. The least difference between naive s.e. and robust s.e. was with the model using unstructured correlation structure.**
+    
+    **Looking closer at the model model with the most similar naive s.e./robust s.e. we can see which of those variables are significant. Treatment is significant and so is the baseline, but gender and age do no show significance.**
+   
+    b. Which model is the best? Compare the following models: independent, exchangable, and what ever models you tried in part (a). Justify your answer. (Hint: use QIC (in \textbf{MESS}), MSE, misclassification rate, comparison of naive vs robust Z-score, or another method, be sure to state your method)
+    
+    ```{r, echo=FALSE}
+    resp_gee6 <- gee(nstat ~ centre + trt + gender + baseline 
+                     + age, data = resp, family = "binomial", id = subject, 
+                     corstr = "independence", scale.fix = TRUE, 
+                     scale.value = 1)
+    resp_gee7 <- gee(nstat ~ centre + trt + gender + baseline 
+                     + age, data = resp, family = "binomial", id = subject, 
+                     corstr = "exchangeable", scale.fix = TRUE, 
+                     scale.value = 1)
+    
+    cat("\nCoefficients for correlation structure 'independence': \n")
+    summary(resp_gee6)[7]
+    cat("\nCoefficients for correlation structure 'exchangeable': \n")
+    summary(resp_gee7)[7]
+    ```
+    
+    ```{r, echo=FALSE}
+    cat(("\nMSE of state_M_dep model:\n"))
+    cat("IF/ELSE 1 or 0 for the model fitted values from lecture\n")
+    mean((ifelse(resp_gee2$fitted.values > 0.5, 1,0)-resp$nstat)^2)
+    cat("Raw value MSE\n")
+    mean((resp_gee2$fitted.values-resp$nstat)^2)
+    cat(("\nMSE of non_stat_M_dep model:\n"))
+    cat("IF/ELSE 1 or 0 for the model fitted values from lecture\n")
+    mean((ifelse(resp_gee3$fitted.values > 0.5, 1,0)-resp$nstat)^2)
+    cat("Raw value MSE\n")
+    mean((resp_gee3$fitted.values-resp$nstat)^2)
+    cat(("\nMSE of AR-M model:\n"))
+    cat("IF/ELSE 1 or 0 for the model fitted values from lecture\n")
+    mean((ifelse(resp_gee4$fitted.values > 0.5, 1,0)-resp$nstat)^2)
+    cat("Raw value MSE\n")
+    mean((resp_gee4$fitted.values-resp$nstat)^2)
+    cat(("\nMSE of unstructured model:\n"))
+    cat("IF/ELSE 1 or 0 for the model fitted values from lecture\n")
+    mean((ifelse(resp_gee5$fitted.values > 0.5, 1,0)-resp$nstat)^2)
+    cat("Raw value MSE\n")
+    mean((resp_gee5$fitted.values-resp$nstat)^2)
+    cat(("\nMSE of independence model:\n"))
+    cat("IF/ELSE 1 or 0 for the model fitted values from lecture\n")
+    mean((ifelse(resp_gee6$fitted.values > 0.5, 1,0)-resp$nstat)^2)
+    cat("Raw value MSE\n")
+    mean((resp_gee6$fitted.values-resp$nstat)^2)
+    cat(("\nMSE of exchangeable model:\n"))
+    cat("IF/ELSE 1 or 0 for the model fitted values from lecture\n")
+    mean((ifelse(resp_gee7$fitted.values > 0.5, 1,0)-resp$nstat)^2)
+    cat("Raw value MSE\n")
+    mean((resp_gee7$fitted.values-resp$nstat)^2)
+    
+    
+    ```
+    
+    **Adding to the coefficient naive and robust s.e. from Part A we can see that the independence correlation structure has a large difference. This means that we cannot trust the naive z values and want to use the robust, which show less significance due to them being more conservative (2.8 naive v 1.9 robust z). The MSE for the models using the code from lecture code results in the same MSE for all fo the models correcting to either 1 or 0 where 1 is good status and 0 is poor status, depending if the fitted value is >0.5 (1) or <0.5 (0). Not correcting to either 1 or 0 of the nstat and just keeping the raw value for MSE calculations resulted in some divergence but not a great deal (0.1825935 to 0.1826893). Because of this, sticking with the summary results comparing the naive s.e. to the robust s.e. makes more sense where the model with exchangeable, or even unstructured, correlation structures provided the least difference between them and allowing to trust the context of the model. If we were to go further, we coulld check for interaction terms between the insignificant or less significant variables as suggested in lecture.**
+    
+2. The data set \textbf{schizophrenia2} from \textbf{HSAUR3} package were collected in a follow-up study of women patients with schizophrenia (Davis, 2002). The binary response recorded at 0, 2, 6, 8 and 10 months after hospitalization was ``thought disorder'' (absent or present). The single covariate is the factor indicating whether a patient had suffered early or late onset of her condition (age of onset less than 20 years or age of onset 20 years or above). The question of interest is whether the course of the illness differs between patients with early and late onset schizophrenia. (https://www.rdocumentation.org/packages/HSAUR3/versions/1.0-9/topics/schizophrenia2)
+Investigate this question using 
+
+    a. plots and summary statistics
+    
+    b. the GEE approach
+    
+    c. mixed effects model (lmer) from previous chapter
+    
+    d. Is there a difference? What model(s) work best? Describe your results.
+   
