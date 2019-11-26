@@ -8,7 +8,7 @@ output:
     df_print: paged
 ---
 
-*Packages*: HSAUR3, gee, lme4, Matrix, multcomp, ggplot2, gridextra, tidyr, dplyr
+*Packages*: HSAUR3, gee, lme4, Matrix, multcomp, ggplot2, plyr, tidyr, MESS, MuMIn
 
 *Collaborators*: 
 
@@ -317,11 +317,250 @@ Investigate this question using
 
     a. plots and summary statistics
     
+    <div data-pagedtable="false">
+      <script data-pagedtable-source type="application/json">
+    {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["subject"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["onset"],"name":[2],"type":["fctr"],"align":["left"]},{"label":["disorder"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["month"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"< 20 yrs","3":"present","4":"0","_rn_":"1"},{"1":"1","2":"< 20 yrs","3":"present","4":"2","_rn_":"45"},{"1":"1","2":"< 20 yrs","3":"absent","4":"6","_rn_":"89"},{"1":"1","2":"< 20 yrs","3":"absent","4":"8","_rn_":"133"},{"1":"1","2":"< 20 yrs","3":"absent","4":"10","_rn_":"177"},{"1":"2","2":"> 20 yrs","3":"absent","4":"0","_rn_":"2"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+      </script>
+    </div>
     
+    ```
+    ## 
+    ## Raw means for the onset age of the disease
+    ```
+    
+    ```
+    ##  < 20 yrs.0  > 20 yrs.0  < 20 yrs.2  > 20 yrs.2  < 20 yrs.6  > 20 yrs.6 
+    ##  0.62500000  0.58333333  0.61290323  0.50000000  0.28571429  0.25000000 
+    ##  < 20 yrs.8  > 20 yrs.8 < 20 yrs.10 > 20 yrs.10 
+    ##  0.17857143  0.00000000  0.11111111  0.09090909
+    ```
+    
+    ```
+    ## 
+    ## Raw variance for the onset age of the disease
+    ```
+    
+    ```
+    ##  < 20 yrs.0  > 20 yrs.0  < 20 yrs.2  > 20 yrs.2  < 20 yrs.6  > 20 yrs.6 
+    ##  0.24193548  0.26515152  0.24516129  0.27272727  0.21164021  0.20454545 
+    ##  < 20 yrs.8  > 20 yrs.8 < 20 yrs.10 > 20 yrs.10 
+    ##  0.15211640  0.00000000  0.10256410  0.09090909
+    ```
+    
+    ![](Soupir_Homework_10_files/figure-latex/unnamed-chunk-5-1.pdf)<!-- --> ![](Soupir_Homework_10_files/figure-latex/unnamed-chunk-5-2.pdf)<!-- --> 
+    
+    ```
+    ## 
+    ## Summary statistics of onset before 20 years old:
+    ```
+    
+    ```
+    ##     subject         onset        disorder      month     
+    ##  1      :  5   < 20 yrs:160   absent :91   Min.   : 0.0  
+    ##  3      :  5   > 20 yrs:  0   present:55   1st Qu.: 2.0  
+    ##  4      :  5                  dropout:14   Median : 6.0  
+    ##  5      :  5                               Mean   : 5.2  
+    ##  6      :  5                               3rd Qu.: 8.0  
+    ##  7      :  5                               Max.   :10.0  
+    ##  (Other):130
+    ```
+    
+    ```
+    ## 
+    ## Summary statistics of onset after 20 years old:
+    ```
+    
+    ```
+    ##     subject        onset       disorder      month     
+    ##  2      : 5   < 20 yrs: 0   absent :41   Min.   : 0.0  
+    ##  10     : 5   > 20 yrs:60   present:17   1st Qu.: 2.0  
+    ##  11     : 5                 dropout: 2   Median : 6.0  
+    ##  13     : 5                              Mean   : 5.2  
+    ##  15     : 5                              3rd Qu.: 8.0  
+    ##  22     : 5                              Max.   :10.0  
+    ##  (Other):30
+    ```
+    
+    **16 data points were removed because they didn't have full records like last week for use calculating the mean and variance like lecture, and the response (being categorical) was converted to a 1 (praesent) or 0 (absent). Plots and summary statsitics were done using the raw schizophrenia2 data.**
+    
+    **The means and variance of each at time point don't appear to be too different from each other besides at time 8 where those patients with onset after 20 years of age was all absent thought disorder. In order to plot the data in a way that was appropriate for binary/factor response some kind of density plotting had to be used. I used a conditional density plot and a mosaic plot to display the data between the different onset times for the length after hospitalization. I kept the NA values in at each time point. As one would expect, as the time goes on the number of dropouts from the study increases. The number of absent disorders also increases, and this could be a reason that some of the patients dropped out, and the number of present disorders decreased. The mosaic plot displays this as well but shows the zero mean and varaince for the 8 month time point for those with the onset before 20 years old.**
+    
+    **The main data frame was split by the onset variable and then *summary()* was run on both new data frames to show some summary statistics. The number of records for the less than 20 onset is 160 vs 60 records for the onset after than 20 years old. 9% of the time points from the under 20 onset are missing and 3% of the time points from over 20 onset is missing. The ratios can be more easily visualized than described through numbers.**
     
     b. the GEE approach
     
+    <div data-pagedtable="false">
+      <script data-pagedtable-source type="application/json">
+    {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["subject"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["onset"],"name":[2],"type":["fctr"],"align":["left"]},{"label":["disorder"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["month"],"name":[4],"type":["ord"],"align":["right"]},{"label":["baseline"],"name":[5],"type":["fctr"],"align":["left"]},{"label":["nstat"],"name":[6],"type":["dbl"],"align":["right"]}],"data":[{"1":"1","2":"< 20 yrs","3":"present","4":"2","5":"present","6":"0","_rn_":"45"},{"1":"1","2":"< 20 yrs","3":"absent","4":"6","5":"present","6":"1","_rn_":"89"},{"1":"1","2":"< 20 yrs","3":"absent","4":"8","5":"present","6":"1","_rn_":"133"},{"1":"1","2":"< 20 yrs","3":"absent","4":"10","5":"present","6":"1","_rn_":"177"},{"1":"2","2":"> 20 yrs","3":"absent","4":"2","5":"absent","6":"1","_rn_":"46"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+      </script>
+    </div>
+    
+    ```
+    ##     (Intercept)   onset> 20 yrs baselinepresent 
+    ##       1.4651447       0.4007224      -0.9289455
+    ```
+    
+    ```
+    ##     (Intercept)   onset> 20 yrs baselinepresent 
+    ##       1.4651447       0.4007224      -0.9289455
+    ```
+    
+    ```
+    ##     (Intercept)   onset> 20 yrs baselinepresent 
+    ##       1.4651447       0.4007224      -0.9289455
+    ```
+    
+    ```
+    ##     (Intercept)   onset> 20 yrs baselinepresent 
+    ##       1.4651447       0.4007224      -0.9289455
+    ```
+    
+    ```
+    ## 
+    ## Coefficients for correlation structure 'independence':
+    ```
+    
+    ```
+    ## $coefficients
+    ##                   Estimate Naive S.E.    Naive z Robust S.E.   Robust z
+    ## (Intercept)      1.4651447  0.3671049  3.9910791   0.4543513  3.2246954
+    ## onset> 20 yrs    0.4007224  0.4184393  0.9576597   0.4665384  0.8589269
+    ## baselinepresent -0.9289455  0.4066898 -2.2841622   0.4901649 -1.8951693
+    ```
+    
+    ```
+    ## geeglm QIC, not gee QIC:
+    ```
+    
+    ```
+    ##      QIC 
+    ## 191.1318
+    ```
+    
+    ```
+    ## 
+    ## Coefficients for correlation structure 'non_stat_M_dep':
+    ```
+    
+    ```
+    ## $coefficients
+    ##                   Estimate Naive S.E.    Naive z Robust S.E.   Robust z
+    ## (Intercept)      1.3544067  0.4048959  3.3450738   0.4316356  3.1378479
+    ## onset> 20 yrs    0.3390988  0.4622082  0.7336495   0.4711819  0.7196771
+    ## baselinepresent -0.9644094  0.4502463 -2.1419595   0.4715176 -2.0453309
+    ```
+    
+    ```
+    ## geeglm QIC, not gee QIC:
+    ```
+    
+    ```
+    ##      QIC 
+    ## 191.1022
+    ```
+    
+    ```
+    ## 
+    ## Coefficients for correlation structure 'exchangeable':
+    ```
+    
+    ```
+    ## $coefficients
+    ##                   Estimate Naive S.E.    Naive z Robust S.E.   Robust z
+    ## (Intercept)      1.3974811  0.4139557  3.3759198   0.4500977  3.1048393
+    ## onset> 20 yrs    0.4356897  0.4829817  0.9020833   0.4685839  0.9298009
+    ## baselinepresent -0.8597299  0.4622047 -1.8600629   0.4862539 -1.7680680
+    ```
+    
+    ```
+    ## geeglm QIC, not gee QIC:
+    ```
+    
+    ```
+    ##      QIC 
+    ## 191.1022
+    ```
+    
+    ```
+    ## 
+    ## Coefficients for correlation structure 'unstructured':
+    ```
+    
+    ```
+    ## $coefficients
+    ##                  Estimate Naive S.E.    Naive z Robust S.E.   Robust z
+    ## (Intercept)      1.426753  0.3888937  3.6687482   0.4283397  3.3308913
+    ## onset> 20 yrs    0.379727  0.4325486  0.8778828   0.4281747  0.8868505
+    ## baselinepresent -1.198680  0.4292882 -2.7922490   0.4634501 -2.5864263
+    ```
+    
+    ```
+    ## geeglm QIC, not gee QIC:
+    ```
+    
+    ```
+    ##      QIC 
+    ## 190.1386
+    ```
+    
+    ```
+    ## 
+    ## 
+    ## gee model QIC using MuMIn::QIC
+    ```
+    
+    <div data-pagedtable="false">
+      <script data-pagedtable-source type="application/json">
+    {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["(Intercept)"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["baseline"],"name":[2],"type":["fctr"],"align":["left"]},{"label":["onset"],"name":[3],"type":["fctr"],"align":["left"]},{"label":["corstr"],"name":[4],"type":["fctr"],"align":["left"]},{"label":["df"],"name":[5],"type":["int"],"align":["right"]},{"label":["qLik"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["IC"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["delta"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["weight"],"name":[9],"type":["S3: model.weights"],"align":["right"]}],"data":[{"1":"1.426753","2":"+","3":"+","4":"unstructured","5":"NA","6":"-92.70357","7":"190.0831","8":"0.0000000","9":"0.3417441","_rn_":"schiz_gee6","_row":"schiz_gee6"},{"1":"1.354407","2":"+","3":"+","4":"non_stat_M_dep","5":"NA","6":"-91.92768","7":"190.7699","8":"0.6867874","9":"0.2424192","_rn_":"schiz_gee3","_row":"schiz_gee3"},{"1":"1.397481","2":"+","3":"+","4":"exchangeable","5":"NA","6":"-91.56718","7":"191.0623","8":"0.9791743","9":"0.2094479","_rn_":"schiz_gee4","_row":"schiz_gee4"},{"1":"1.465145","2":"+","3":"+","4":"independence","5":"NA","6":"-91.54862","7":"191.0917","8":"1.0086009","9":"0.2063888","_rn_":"schiz_gee1","_row":"schiz_gee1"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+      </script>
+    </div>
+    
+    ***PACKAGES INTERFERE WITH EACH OTHER. The MESS package QIC function does not work on gee models but the MuMIn QIC fuction does work on them. The MuMIn package was pulled from with MuMIn::QIC when calculating the QIC from the gee models. The following was written before finding this out.***
+    
+    Model selection table 
+           (Intrc) basln onset  corstr    qLik   QIC delta weight
+schiz_gee6   1.427     +     +       u -92.704 190.1  0.00  0.342
+schiz_gee3   1.354     +     + n_s_M_d -91.928 190.8  0.69  0.242
+schiz_gee4   1.397     +     +       e -91.567 191.1  0.98  0.209
+schiz_gee1   1.465     +     +       i -91.549 191.1  1.01  0.206
+Abbreviations:
+corstr: e = ‘exchangeable’, i = ‘independence’, n_s_M_d = ‘non_stat_M_dep’, u = ‘unstructured’
+Models ranked by QIC(x) 
+
+    **The correlation structures that didn't work were the *stat_M_dep* and the *AR-M* structures. The error output says that the clustsize=1 and through searching the internet it says that the ID column (subject) should be sorted and have more than 1 in a row, which they were. I even went through and sorted again through the order() command and the error persists so I removed them from running in the code. Along with the *onset* parameter that is mentioned as being the only covariate, baseline was also added like with the respiratory data from lecture.**
+    
+    **Additionally, The QIC command from the MESS package worked once, but not again after (*now noting that it was probably because the MuMIn package was loaded after or something along those lines*), on the models produced using gee(). Because of this, I copied the output from the time that it had worked into the text above. I have also tried getting the models to work using the geeglm function that QIC is supposed to work with but that gives an error for scale.value even with scale.fix is set to false (supposedly not using the scale.value in this case). Removing the scale.value parameter does give the models that work and the standard error is similar to that of the robust s.e., but uses a w (wald) value rather than z value. However, these models also throw an error using the recommended model.sel() because the rank function (QIC) returns a vector greater than 1 in length.. Furthermore, the results from the QIC on each model constructed using the geeglm() function from MESS package is different from the QIC of the table produced with QIC on the models from gee() function.**
+    
+    **The coefficients from the gee() models suggest the best model is the "non_stat_M_dep" model with the lowest differences between naive and robust, but exchangeable is extremely close as well. This is supported by the QIC of the geeglm() models where the exchangeable and non_stat_M_dep have the same QIC.**
+    
+    ***AFTER FINDING OUT MESS QIC DOES NOT WORK ON GEE MODELS AND USING MuMIn QIC***
+    
+    **Basically same story as above, but now able to repeatedly print out the model.sel QIC table and view the QIC of the gee models. The QIC values are different between the QIC from MESS and MuMIn (most likely due to the difference in models; gee vs geeglm). Because of this, the QIC to compare should probably be from the MuMIn package because it uses the gee models that are being used to compare the naive and robust s.e. values. According to the QIC of the gee models, the unstructured correlation structure produced the lowest QIC for the data. This is interesting because depending on the covariate that is being looked at, the non_stat_M_dep and exhangeable has slightly lower differences. The baseline of the unstructured correlation structure is the most significant of all models, and the onset factor is not significant for any model. **
+    
     c. mixed effects model (lmer) from previous chapter
     
+    
+    ```
+    ## AIC of random intercept LME:
+    ```
+    
+    ```
+    ## [1] 165.5155
+    ```
+    
+    ```
+    ## AIC of random slop LME:
+    ```
+    
+    ```
+    ## [1] 168.0985
+    ```
+    
     d. Is there a difference? What model(s) work best? Describe your results.
-   
+    
+    **QIC is quasi-AIC, so I would image they would be comparable? If so, the random intercept model produces the lowest AIC value at 166 and the random slope produces an AIC of 168. These values are a fair amount lower than those QIC/AIC values from the gerneralized estimation equations where the values were between 190.1 and 191.1. This suggests that the linear mixed effect models are a better fit for the data than are the generalized estimation equation models.**
+
+**References**
+
++ journal.r-project.org
++ cran.r-project.org (HSAUR3 documentation for the schizophrenia2 data)

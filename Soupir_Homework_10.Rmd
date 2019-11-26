@@ -8,7 +8,7 @@ output:
     df_print: paged
 ---
 
-*Packages*: HSAUR3, gee, lme4, Matrix, multcomp, ggplot2, gridextra, tidyr, dplyr
+*Packages*: HSAUR3, gee, lme4, Matrix, multcomp, ggplot2, plyr, tidyr, MESS, MuMIn
 
 *Collaborators*: 
 
@@ -41,6 +41,7 @@ Please do the following problems from the text book R Handbook and stated.
     library(gee)
     library(lme4)
     library(tidyr)
+    library(Matrix)
     
     set.seed(333)
     
@@ -160,12 +161,160 @@ Investigate this question using
     a. plots and summary statistics
     
     ```{r, echo=FALSE}
+    #https://journal.r-project.org/archive/2013/RJ-2013-012/RJ-2013-012.pdf
+    library(HSAUR3)
+    library(plyr)
+    
+    set.seed(333)
+    data(schizophrenia2)
+    s = schizophrenia2
+    head(s)
+    s = s[complete.cases(s),]
+    s2 = s
+    s2$disorder = ifelse(s2$disorder == "present", 1, 0)
+    
+    itp <- interaction(s2$onset, s2$month)
+    cat("\nRaw means for the onset age of the disease\n")
+    #Raw means for placebo and drug
+    tapply(s2$disorder, itp, mean)
+    cat("\nRaw variance for the onset age of the disease\n")
+    #variance  for placebo and drug
+    tapply(s2$disorder, itp, var)
+    
+    sc = schizophrenia2
+    sc$disorder = factor(sc$disorder, exclude=NULL)
+    levels(sc$disorder)[3] = "dropout"
+    l20 <- subset(sc, onset == "< 20 yrs")
+    g20 <- subset(sc, onset == "> 20 yrs")
+    layout(matrix(1:2, nrow = 1))
+    cdplot(disorder~month, data=l20)
+    cdplot(disorder~month, data=g20)
+    layout(matrix(1:1, nrow = 1))
+    colors = c("white","grey80","darkred")
+    mosaicplot(xtabs(~ onset + month + disorder, data = sc))
+    
+    cat("\nSummary statistics of onset before 20 years old:\n")
+    summary(l20)
+    cat("\nSummary statistics of onset after 20 years old:\n")
+    summary(g20)
     
     ```
     
+    **16 data points were removed because they didn't have full records like last week for use calculating the mean and variance like lecture, and the response (being categorical) was converted to a 1 (praesent) or 0 (absent). Plots and summary statsitics were done using the raw schizophrenia2 data.**
+    
+    **The means and variance of each at time point don't appear to be too different from each other besides at time 8 where those patients with onset after 20 years of age was all absent thought disorder. In order to plot the data in a way that was appropriate for binary/factor response some kind of density plotting had to be used. I used a conditional density plot and a mosaic plot to display the data between the different onset times for the length after hospitalization. I kept the NA values in at each time point. As one would expect, as the time goes on the number of dropouts from the study increases. The number of absent disorders also increases, and this could be a reason that some of the patients dropped out, and the number of present disorders decreased. The mosaic plot displays this as well but shows the zero mean and varaince for the 8 month time point for those with the onset before 20 years old.**
+    
+    **The main data frame was split by the onset variable and then *summary()* was run on both new data frames to show some summary statistics. The number of records for the less than 20 onset is 160 vs 60 records for the onset after than 20 years old. 9% of the time points from the under 20 onset are missing and 3% of the time points from over 20 onset is missing. The ratios can be more easily visualized than described through numbers.**
+    
     b. the GEE approach
+    
+    ```{r, echo=FALSE}
+    library(MESS)
+    library(geepack)
+    library(MuMIn)
+    schiz <- subset(schizophrenia2, month > "0")
+    schiz$baseline <- rep(subset(schizophrenia2, month == "0")$disorder,
+                         rep(4, 44))
+    schiz$nstat <- as.numeric(schiz$disorder == "absent")
+    schiz$month = factor(schiz$month, ordered = TRUE)
+    schiz$month <- schiz$month[, drop = TRUE]
+    head(schiz, n = 5)
+    
+    schiz = schiz[order(schiz$subject),]
+    
+    schiz_gee1 <- gee(nstat ~ onset + baseline, data = schiz, family = "binomial", id = subject, 
+                     corstr = "independence", scale.fix = TRUE, 
+                     scale.value = 1)
+    #schiz_gee2 <- gee(nstat ~ onset + baseline, data = schiz, family = "binomial", id = subject, 
+    #                 corstr = "stat_M_dep", scale.fix = TRUE, 
+    #                 scale.value = 1)
+    schiz_gee3 <- gee(nstat ~ onset + baseline, data = schiz, family = "binomial", id = subject, 
+                     corstr = "non_stat_M_dep", scale.fix = TRUE, 
+                     scale.value = 1)
+    schiz_gee4 <- gee(nstat ~ onset + baseline, data = schiz, family = "binomial", id = subject, 
+                     corstr = "exchangeable", scale.fix = TRUE, 
+                     scale.value = 1)
+    #schiz_gee5 <- gee(nstat ~ onset + baseline, data = schiz, family = "binomial", id = subject, 
+    #                 corstr = "AR-M", scale.fix = TRUE, 
+    #                 scale.value = 1)
+    schiz_gee6 <- gee(nstat ~ onset + baseline, data = schiz, family = "binomial", id = subject, 
+                     corstr = "unstructured", scale.fix = TRUE, 
+                     scale.value = 1)
+    
+    schiz_gee7 = geeglm(nstat ~ onset + baseline, data = schiz, family = binomial, id=factor(subject),
+                        corstr = "independence", scale.fix = TRUE)
+    schiz_gee8 = geeglm(nstat ~ onset + baseline, data = schiz, family = binomial, id=factor(subject),
+                        corstr = "non_stat_M_dep", scale.fix = TRUE)
+    schiz_gee9 = geeglm(nstat ~ onset + baseline, data = schiz, family = binomial, id=factor(subject),
+                        corstr = "exchangeable", scale.fix = TRUE)
+    schiz_gee10 = geeglm(nstat ~ onset + baseline, data = schiz, family = binomial, id=factor(subject),
+                        corstr = "unstructured", scale.fix = TRUE)
+    
+    cat("\nCoefficients for correlation structure 'independence': \n")
+    summary(schiz_gee1)[7]
+    cat("geeglm QIC, not gee QIC:\n")
+    QIC(schiz_gee7)
+    cat("\nCoefficients for correlation structure 'non_stat_M_dep': \n")
+    summary(schiz_gee3)[7]
+    cat("geeglm QIC, not gee QIC:\n")
+    QIC(schiz_gee8)
+    cat("\nCoefficients for correlation structure 'exchangeable': \n")
+    summary(schiz_gee4)[7]
+    cat("geeglm QIC, not gee QIC:\n")
+    QIC(schiz_gee9)
+    cat("\nCoefficients for correlation structure 'unstructured': \n")
+    summary(schiz_gee6)[7]
+    cat("geeglm QIC, not gee QIC:\n")
+    QIC(schiz_gee10)
+    
+    cat("\n\ngee model QIC using MuMIn::QIC\n")
+    model.sel(schiz_gee1, schiz_gee3, schiz_gee4, schiz_gee6, rank=MuMIn::QIC)
+
+    ```
+    
+    ***PACKAGES INTERFERE WITH EACH OTHER. The MESS package QIC function does not work on gee models but the MuMIn QIC fuction does work on them. The MuMIn package was pulled from with MuMIn::QIC when calculating the QIC from the gee models. The following was written before finding this out.***
+    
+    Model selection table 
+           (Intrc) basln onset  corstr    qLik   QIC delta weight
+schiz_gee6   1.427     +     +       u -92.704 190.1  0.00  0.342
+schiz_gee3   1.354     +     + n_s_M_d -91.928 190.8  0.69  0.242
+schiz_gee4   1.397     +     +       e -91.567 191.1  0.98  0.209
+schiz_gee1   1.465     +     +       i -91.549 191.1  1.01  0.206
+Abbreviations:
+corstr: e = ‘exchangeable’, i = ‘independence’, n_s_M_d = ‘non_stat_M_dep’, u = ‘unstructured’
+Models ranked by QIC(x) 
+
+    **The correlation structures that didn't work were the *stat_M_dep* and the *AR-M* structures. The error output says that the clustsize=1 and through searching the internet it says that the ID column (subject) should be sorted and have more than 1 in a row, which they were. I even went through and sorted again through the order() command and the error persists so I removed them from running in the code. Along with the *onset* parameter that is mentioned as being the only covariate, baseline was also added like with the respiratory data from lecture.**
+    
+    **Additionally, The QIC command from the MESS package worked once, but not again after (*now noting that it was probably because the MuMIn package was loaded after or something along those lines*), on the models produced using gee(). Because of this, I copied the output from the time that it had worked into the text above. I have also tried getting the models to work using the geeglm function that QIC is supposed to work with but that gives an error for scale.value even with scale.fix is set to false (supposedly not using the scale.value in this case). Removing the scale.value parameter does give the models that work and the standard error is similar to that of the robust s.e., but uses a w (wald) value rather than z value. However, these models also throw an error using the recommended model.sel() because the rank function (QIC) returns a vector greater than 1 in length.. Furthermore, the results from the QIC on each model constructed using the geeglm() function from MESS package is different from the QIC of the table produced with QIC on the models from gee() function.**
+    
+    **The coefficients from the gee() models suggest the best model is the "non_stat_M_dep" model with the lowest differences between naive and robust, but exchangeable is extremely close as well. This is supported by the QIC of the geeglm() models where the exchangeable and non_stat_M_dep have the same QIC.**
+    
+    ***AFTER FINDING OUT MESS QIC DOES NOT WORK ON GEE MODELS AND USING MuMIn QIC***
+    
+    **Basically same story as above, but now able to repeatedly print out the model.sel QIC table and view the QIC of the gee models. The QIC values are different between the QIC from MESS and MuMIn (most likely due to the difference in models; gee vs geeglm). Because of this, the QIC to compare should probably be from the MuMIn package because it uses the gee models that are being used to compare the naive and robust s.e. values. According to the QIC of the gee models, the unstructured correlation structure produced the lowest QIC for the data. This is interesting because depending on the covariate that is being looked at, the non_stat_M_dep and exhangeable has slightly lower differences. The baseline of the unstructured correlation structure is the most significant of all models, and the onset factor is not significant for any model. **
     
     c. mixed effects model (lmer) from previous chapter
     
+    ```{r, echo=FALSE}
+    schiz1 = schiz
+    schiz1$month = as.numeric(schiz$month)
+    schiz_lmer1 <- lmer(nstat ~ onset + month + baseline + (1 | subject), data = schiz1, 
+                        REML = FALSE, na.action = na.omit) # random intercept
+    schiz_lmer2 <- lmer(nstat ~ onset + month + baseline + (month | subject), data = schiz1, 
+                        REML = FALSE, na.action = na.omit) # random slope
+    
+    cat("AIC of random intercept LME: \n")
+    AIC(schiz_lmer1)
+    cat("AIC of random slop LME: \n")
+    AIC(schiz_lmer2)
+    ```
+    
     d. Is there a difference? What model(s) work best? Describe your results.
-   
+    
+    **QIC is quasi-AIC, so I would image they would be comparable? If so, the random intercept model produces the lowest AIC value at 166 and the random slope produces an AIC of 168. These values are a fair amount lower than those QIC/AIC values from the gerneralized estimation equations where the values were between 190.1 and 191.1. This suggests that the linear mixed effect models are a better fit for the data than are the generalized estimation equation models.**
+
+**References**
+
++ journal.r-project.org
++ cran.r-project.org (HSAUR3 documentation for the schizophrenia2 data)
